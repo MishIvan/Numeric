@@ -1,0 +1,730 @@
+#include "MATRIX.h"
+#include <thread>
+
+/// <summary>
+/// Конструктор матрицы M x N, всем элементам которой присваивается значение val
+/// </summary>
+/// <param name="M">число строк матрицы</param>
+/// <param name="N">число столбцов матрицы</param>
+/// <param name="val"></param>
+MATRIX::MATRIX(int M, int N, double val)
+{
+	m_columns = m_rows = 0;
+	m_data = 0;
+	if (M < 0 || N < 0)
+	{
+		throw invalid_argument("Задана отрицательная размерность матрицы");
+		return;
+	}
+	m_rows = M; m_columns = N;
+	this->m_data = new double[this->m_rows * this->m_columns];
+	for (int i = 0; i < M; i++)
+		for (int j = 0; j < N; j++)
+			*(m_data + i * m_columns + j) = val;
+}
+/// <summary>
+/// Конструктор копирования матрицы из матрицы src 
+/// </summary>
+/// <param name="src">исходная матрица для копирования</param>
+MATRIX::MATRIX(const MATRIX& src)
+{
+	if (!this->m_data) delete[] this->m_data;
+	this->m_columns = src.m_columns;
+	this->m_rows = src.m_rows;
+	this->m_data = new double[this->m_rows * this->m_columns];
+	for (int i = 0; i < this->m_rows; i++)
+		for (int j = 0; j < this->m_columns; j++)
+			*(this->m_data + i * this->m_columns + j) = *(src.m_data + i*src.m_columns +j);
+}
+/// <summary>
+/// Перегрузка оператора присваивания
+/// </summary>
+/// <param name="src">матрица для присваивания</param>
+/// <returns></returns>
+MATRIX& MATRIX::operator=(const MATRIX& src)
+{
+	if (!this->m_data) delete[] this->m_data;
+	this->m_columns = src.m_columns;
+	this->m_rows = src.m_rows;
+	this->m_data = new double[this->m_rows * this->m_columns];
+	for (int i = 0; i < this->m_rows; i++)
+		for (int j = 0; j < this->m_columns; j++)
+			*(this->m_data + i * this->m_columns + j) = *(src.m_data + i * src.m_columns + j);
+	return *this;
+}
+/// <summary>
+/// Элемент матрицы
+/// </summary>
+/// <param name="i">строка</param>
+/// <param name="j">колонка</param>
+/// <returns>элемент на i-ой строке и j-ой колонке</returns>
+//double& MATRIX::operator()(int i, int j)
+//{
+//	return *(m_data + i * m_columns + j);
+//}
+/// <summary>
+/// Перегрузка оператора умножения матриц matr1 и matr2
+/// Число столбцов матрицы matr1 должно быть равно числу строк матрицы matr2
+/// </summary>
+/// <param name="matr1">первая матрица</param>
+/// <param name="matr2">вторая матрица</param>
+/// <returns>матрицу, произведение</returns>
+MATRIX operator*(const MATRIX& matr1, const MATRIX& matr2)
+{
+	MATRIX pmatr(matr1.m_rows, matr2.m_columns);
+	if (matr1.m_columns != matr2.m_rows) return pmatr;
+	int i, j;
+	for(i = 0; i < matr1.m_rows; i++)
+		for (j = 0; j < matr2.m_columns; j++)
+		{
+			double prod = 0.0;
+			for (int k = 0; k < matr1.m_columns; k++)
+				prod += *(matr1.m_data + i * matr1.m_columns + k) * *(matr2.m_data + k * matr2.m_columns + j);
+			*(pmatr.m_data + i * pmatr.m_columns + j) = prod;
+		}
+	return pmatr;
+}
+/// <summary>
+/// Перегрузка оператора вывода на консоль или в файловый поток (файл должен быть открыт для чтения) 
+/// матрица выводится построчно
+/// </summary>
+/// <param name="s"></param>
+/// <param name="matr">матрица</param>
+/// <returns></returns>
+ostream& operator<<(ostream& s, MATRIX& matr)
+{
+	int m = matr.m_rows;
+	int n = matr.m_columns;
+	for (int i = 0; i < m; i++)
+	{
+		for (int j = 0; j < n; j++) // вывод строки в поток
+			s << *(matr.m_data + i * n + j) << ' ';
+		s << endl;
+	}
+	return s;
+}
+/// <summary>
+/// Перегрузка оператора ввода с консоли или в файловый поток (файл должен быть открыт для записи) 
+/// матрицы вводится построчно
+/// </summary>
+/// <param name="s"></param>
+/// <param name="matr">матрица</param>
+/// <returns>поток</returns>
+istream& operator>>(istream& s, MATRIX& matr)
+{
+	int m = matr.m_rows;
+	int n = matr.m_columns;
+	double* buff = new double[n];
+	for (int i = 0; i < m; i++)
+	{
+		for (int j = 0; j < n; j++) // считывание строки матрицы
+			s >> *(buff + j);
+		for (int j = 0; j < n; j++) // запись строки матрицы
+			*(matr.m_data + i * n + j) = *(buff + j);
+
+	}
+	delete[] buff;
+	return s;
+}
+/// <summary>
+/// Вычисление определителя квадратной матрицы
+/// </summary>
+/// <returns></returns>
+double MATRIX::Determinant()
+{
+	if(m_rows != m_columns) return NAN;
+	MATRIX alpha(m_rows, m_columns);
+	return FormMatrixCompactScheme(alpha);
+}
+/// <summary>
+/// Считывание данных их файла и загрузка их в матрицу matr
+/// </summary>
+/// <param name="fileName">полное имя файла</param>
+/// <param name="matr">матрица</param>
+/// <returns>true - в случае успешного считывания данных, false - в случае ошибки</returns>
+bool MATRIX::readFromFile(const char* fileName, MATRIX& matr)
+{
+	ifstream fs;
+	fs.open(fileName);
+	if (fs.is_open())
+	{
+		fs >> matr.m_rows >> matr.m_columns;
+		fs >> matr;
+		fs.close();
+		return true;
+	}
+	return false;
+}
+/// <summary>
+///  Запись данных в файл
+/// </summary>
+/// <param name="fileName">полное имя файла для записи</param>
+/// <returns>true - в случае успешного считывания данных, false - в случае ошибки</returns>
+bool MATRIX::writeToFile(const char* fileName, MATRIX& matr)
+{
+	ofstream fs;
+	fs.open(fileName);
+	if(fs.is_open()){
+		fs << matr.m_rows << ' ' << matr.m_columns << endl;
+		fs << matr;
+		fs.close();
+		return true;
+	}
+	return false;
+}
+/// <summary>
+/// Является ли квадратная матрица симметричной
+/// </summary>
+/// <returns></returns>
+bool MATRIX::IsSymmetric()
+{
+	if (m_rows != m_columns)
+	{
+		throw "Симметричной может быть только квадратная матрица";
+		return false;
+	}
+	int n = m_rows;
+	for(int i=0; i < n; i++)
+		for (int j = 0; j < n; j++)
+		{
+			if (*(m_data + i*n + j) != *(m_data + j*n + i)) return false;
+		}
+	return true;
+}
+/// <summary>
+/// Умножение марицы matr на вектор v
+/// </summary>
+/// <param name="matr">матрица</param>
+/// <param name="v">вектор</param>
+/// <returns>результат умножения, вектор</returns>
+VECTOR operator*(const MATRIX& matr, const VECTOR& v)
+{
+	VECTOR prod(matr.m_rows);
+	if (matr.m_columns != v.m_size) return prod;
+	for (int i = 0; i < matr.m_rows; i++)
+	{
+		double val = 0.0;
+		for (int j = 0; j < matr.m_columns; j++)
+			val += *(matr.m_data + i * matr.m_columns + j) * *(v.m_data + j);
+		*(prod.m_data + i) = val;
+	}
+	return prod;
+}
+/// <summary>
+/// QR разложение квадратной матрицы
+/// </summary>
+/// <param name="Q">матрица Q</param>
+/// <param name="R">матрица R</param>
+bool MATRIX::QRDecomposition(MATRIX& Q, MATRIX& R)
+{
+	if (m_columns != m_rows) return false;
+	int n = m_rows;
+	double sum = 0.0;
+
+	for (int j = 0; j < n; j++)
+	{
+		// q(j) = a(j)
+		for (int k = 0; k < n; k++)
+			*(Q.m_data + k * n + j) = *(m_data + k * n + j);
+
+		for (int i = 0; i <= j - 1; i++)
+		{
+			// rij = q(i)^T*a(j)
+			sum = 0.0;
+			for (int k = 0; k < n; k++)
+				sum += *(Q.m_data + k* n + i) * *(m_data + k * n + j);
+			*(R.m_data + i * n + j) = sum;
+
+			// r(i,j)*q(i)
+			for(int k=0; k < n; k++)
+				*(Q.m_data + k * n + j) -= *(R.m_data + i * n + j) * *(Q.m_data + k * n + i);
+		}
+
+		// r(j,j) = || q(j)) ||2
+		sum = 0.0;
+		for (int k = 0; k < n; k++)
+			sum += *(Q.m_data + k * n + j) * *(Q.m_data + k * n + j);
+		*(R.m_data + j * n + j) = sqrt(sum);
+
+		if (*(R.m_data + j * n + j) == 0.0)
+		{
+			return false;
+		}
+		for (int k = 0; k < n; k++)
+			*(Q.m_data + k * n + j) /= *(R.m_data + j * n + j);
+
+	}
+	
+	return true;
+}
+/// <summary>
+///  Разложение Холецкого матрицы A = L*L^t
+/// </summary>
+/// <param name="L">матрица в разложении Холецкого</param>
+/// <returns></returns>
+bool MATRIX::CholeskyDecomposition(MATRIX& L)
+{
+	if (m_rows != m_columns) return false;
+	int n = m_rows;
+	for (int i = 0; i < n; i++) 
+		for (int j = 0; j <= i; j++) {
+
+			double sum = 0;
+			for (int k = 0; k < j; k++) 
+				sum += *(L.m_data + i*n + k) * *(L.m_data + j*n + k);
+
+			if (i == j)
+			{
+				*(L.m_data + i * n + j) = sqrt(*(m_data + i * n + i) - sum);
+				if ( *(L.m_data + i * n + j) <= 0.0 || isnan(*(L.m_data + i * n + j)) ) return false;
+			}
+			else 
+				*(L.m_data + i * n + j) = (*(m_data + i * n + j) - sum)/(*(L.m_data + j * n + j));
+		}
+	
+	return true;
+}
+/// <summary>
+/// Получение транспонированной матрицы 
+/// </summary>
+/// <returns>транспонированную матрицу</returns>
+MATRIX MATRIX::Transpose()
+{
+	MATRIX tr(m_columns, m_rows);
+	for (int i = 0; i < m_columns; i++)
+		for (int j = 0; j < m_rows; j++)
+			*(tr.m_data + i * tr.m_columns + j) = *(m_data + j * m_columns + i);
+	return tr;
+}
+
+/// <summary>
+/// Деструктор: освобождение памяти, занимаемой под матрицу
+/// </summary>
+MATRIX::~MATRIX()
+{
+	if (!m_data) delete[] m_data;
+}
+
+
+/// <summary>
+/// Получение количества элементов ниже главной диагонали и равных val
+/// </summary>
+/// <param name="val">значение</param>
+/// <returns>количество элементов</returns>
+
+int MATRIXEXT::getCountNotNumsUnderMD(double val) {
+	int count = 0;
+	for (int i = 0; i < m_rows; ++i) {
+		for (int j = 0; j < m_columns; j++) {
+			// получаем элементы ниже главной диагонали
+			if (i > j) {
+				if (*(m_data + i*m_columns + j) == val) count++;
+			}
+		}
+	}
+	return count;
+}
+/// <summary>
+/// Решение системы линейных алгебраических уравнений (СЛАУ) методом Гаусса с вычислением определителя матрицы системы 
+/// </summary>
+/// <param name="a">матрица коэффициентов СЛАУ</param>
+/// <param name="b">вектор правой части СЛАУ</param>
+/// <param name="x">решение СЛАУ</param>
+/// <param name="det">определитель матрицы a</param>
+/// <returns></returns>
+bool Gauss(const MATRIX &a, const VECTOR &b, VECTOR &x)
+{
+	int i, k, m;
+	long double amm, aim;
+
+	// матрица должна быть квадратной и размерность вектора должна совпадать 
+	// с размерностью матрицы
+	if (a.m_columns != b.m_size || a.m_columns != a.m_rows) return false;
+	int size = a.m_rows;
+
+	// сведение исходной системы к системе с верхней треугольной матрицей
+	MATRIX alf(size, size);
+	VECTOR bet(size);
+	alf = a;
+	bet = b;
+	for (m = 0; m <= size - 2; m++)
+	{
+		amm =  *(alf.m_data + m * size + m);
+		for (k = m; k <= size - 1; k++)
+			*(alf.m_data + m*size + k) /= amm;
+		*(bet.m_data + m)/= amm;
+		for (i = m + 1; i <= size - 1; i++)
+		{
+			aim = *(alf.m_data +i*size + m);
+			for (k = m; k <= size - 1; k++)
+				*(alf.m_data +i*size + k) -= *(alf.m_data + m*size + k) * aim;
+			*(bet.m_data + i) -= *(bet.m_data + m) * aim;
+		}//end i 
+	}//end m 
+
+	// нахождение решения СЛАУ с верхней треугольной матрицей
+	*(x.m_data + size - 1) = *(bet.m_data +size - 1) / *(alf.m_data + size*(size - 1) + size - 1);
+	for (i = size - 2; i >= 0; i--)
+	{
+		*(x.m_data + i) = *(bet.m_data +i);
+		for (k = i + 1; k < size; k++)
+			*(x.m_data + i) -= *(alf.m_data + i*size +k) * *(x.m_data + k);
+	}//end i
+	return true;
+	
+}
+/// <summary>
+/// Формирование матриц alpha и gamma в компактной схеме исключения
+/// Матрица alpha верхняя треугольная, gamma - нижняя треугольная
+/// </summary>
+/// <param name="alpha">формируемые матрицы</param>
+/// <returns>значение определителя матрицы</returns>
+double MATRIX::FormMatrixCompactScheme(MATRIX& alpha)
+{
+	if (this->m_columns != this->m_rows) return NAN;
+	int n = this->m_rows;
+
+	for (int i = 0; i < n; i++)
+	{
+		*(alpha.m_data +i * n) = *(this->m_data + i * n);
+		if (i > 0) *(alpha.m_data + i) = *(this->m_data +i) / *this->m_data;
+	}
+
+	double sum = 0.0;
+	int k = 1, i = 1;
+	while (i < n)
+	{
+		if (k >= n)
+		{
+			k = 1; i++;
+			if (i >= n) break;
+		}
+		if (i >= k)
+		{
+			sum = 0.0;
+			for (int j = 0; j <= k - 1; j++)
+			{
+				sum += *(alpha.m_data +i * n + j) * *(alpha.m_data +j * n + k);
+			}
+			*(alpha.m_data +i * n + k) = *(this->m_data +i * n + k) - sum;
+		}
+		else
+		{
+			sum = 0.0;
+			for (int j = 0; j <= i - 1; j++)
+			{
+				sum += *(alpha.m_data + i * n + j) * *(alpha.m_data +j * n + k);
+			}
+			if (abs(*(alpha.m_data + i * n + i)) < 1.0e-18)
+			{
+				return 0.0;
+			}
+			*(alpha.m_data + i * n + k) = (*(this->m_data +i * n + k) - sum) / *(alpha.m_data +i * n + i);
+		}
+		k++;
+	}
+
+	// вычисление определителя
+	double det = 1.0;
+	for (int i = 0; i < n; i++)
+		det *= *(alpha.m_data + i * n + i);
+	return det;
+}
+
+/// <summary>
+/// Решение системы линейных уравнений компактной схемой исключения
+/// </summary>
+/// <param name="A">матрица системы уравнений</param>
+/// <param name="b">вектор правой части системы уравнений</param>
+/// <param name="x">решение системы уравнений</param>
+void CompactSchemeSolve(MATRIX &A, VECTOR& b, VECTOR& x)
+{
+	if (A.m_rows != A.m_columns) return;
+	int n = A.m_rows;
+	MATRIX alpha(n , n);
+	double det = A.FormMatrixCompactScheme(alpha);
+	// решение только для неособенной матрицы
+	if (det != 0.0)
+	{
+		/*VECTOR beta(n);
+		double sum = 0.0;
+		*beta.m_data = *b.m_data / *A.m_data;
+		for (int i = 1; i < n; i++)
+		{
+			sum = 0.0;
+			for (int j = 0; j <= i - 1; j++)
+				sum += *(alpha.m_data + i * n + j) * *(beta.m_data +j);
+			*(beta.m_data +i) = (*(b.m_data+i) - sum) / *(alpha.m_data + i * n + i);
+		}
+
+		// решение системы уравнений с труегольной матрицей		   
+		*(x.m_data + n - 1) = *(beta.m_data + n - 1);
+		for (int i = n - 2; i >= 0; i--)
+		{
+			sum = 0.0;
+			for (int j = n - 1; j > i; j--)
+				sum += *(alpha.m_data +i * n + j) * *(x.m_data + j);
+			*(x.m_data + i) = *(beta.m_data + i) - sum;
+		} */
+		TriangleSolve(alpha, b, x);
+	}
+	
+}
+/// <summary>
+/// Решение системы линейных алгебраических уравнений A*x = b с верхней треугольной матрицей
+/// </summary>
+/// <param name="A">верхняя треугольная матрица системы</param>
+/// <param name="b">вектор правой части системы</param>
+/// <param name="x">решение системы</param>
+void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x)
+{
+	int n = b.m_size;
+	VECTOR beta(n);
+	double sum = 0.0;
+	*beta.m_data = *b.m_data / *A.m_data;
+	for (int i = 1; i < n; i++)
+	{
+		sum = 0.0;
+		for (int j = 0; j <= i - 1; j++)
+			sum += *(A.m_data + i * n + j) * *(beta.m_data + j);
+		*(beta.m_data + i) = (*(b.m_data + i) - sum) / *(A.m_data + i * n + i);
+	}
+
+	// решение системы уравнений с труегольной матрицей		   
+	*(x.m_data + n - 1) = *(beta.m_data + n - 1);
+	for (int i = n - 2; i >= 0; i--)
+	{
+		sum = 0.0;
+		for (int j = n - 1; j > i; j--)
+			sum += *(A.m_data + i * n + j) * *(x.m_data + j);
+		*(x.m_data + i) = *(beta.m_data + i) - sum;
+	}
+
+ }
+/// <summary>
+/// Решение СЛАУ с применением QR декомпозиции матрицы системы A
+/// </summary>
+/// <param name="A">матрица системы линейных уравнений</param>
+/// <param name="b">вектор правой части системы линейных уравнений</param>
+/// <param name="x">вектор решения системы линейныз уравнений</param>
+void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
+{ 
+	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+	MATRIX Q(A.m_rows, A.m_columns), R(A.m_rows, A.m_columns);
+	int n = A.m_rows;
+	A.QRDecomposition(Q, R);
+	VECTOR beta(b.m_size);
+	beta = Q.Transpose() * b;
+	cout << beta << endl;
+
+	// решение системы уравнений с верхней труегольной матрицей		   
+	*(x.m_data + n - 1) = *(beta.m_data + n - 1)/ *(R.m_data + (n - 1)*n + n - 1);
+	for (int i = n - 2; i >= 0; i--)
+	{
+		double sum = 0.0;
+		for (int j = n - 1; j > i; j--)
+			sum += *(R.m_data + i * n + j) * *(x.m_data + j);
+		*(x.m_data + i) = (*(beta.m_data + i) - sum) / *(R.m_data + i*n + i);
+	}
+
+
+}
+/// <summary>
+/// Решение системы уравнений с применением метода LLT декомпозиции A = LLT
+/// </summary>
+/// <param name="A"></param>
+/// <param name="b"></param>
+/// <param name="x"></param>
+void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
+{
+	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+
+	MATRIX L(A.m_rows, A.m_columns), Anorm(A.m_rows, A.m_columns);
+	VECTOR bet(A.m_rows);
+
+	int n = A.m_rows;
+	if (!A.CholeskyDecomposition(L))
+	{
+		MATRIX At(A.m_rows, A.m_columns);
+		At = A.Transpose();
+		Anorm =  At * A; // нормализация матрицы
+		bet = At * b;
+		Anorm.CholeskyDecomposition(L);
+	}
+	else
+	{
+		Anorm = A; bet = b;
+	}
+
+	// решение системы с верхней треугольной матрицей Ly = b
+	VECTOR y(n);
+	for (int i = 0; i < n; i++)
+	{
+		*(y.m_data + i) = *(bet.m_data + i);
+		double sum = 0.0;
+		for (int k = 0; k < i; k++)
+		{
+			sum += *(L.m_data + i * n + k) * *(y.m_data + k);
+		}
+		*(y.m_data + i) -= sum;
+		*(y.m_data + i) /= *(L.m_data + i * n + i);
+		
+	}
+
+	L = L.Transpose();
+	// решение системы уравнений с верхней труегольной матрицей L^tx = y   
+	*(x.m_data + n - 1) = *(y.m_data + n - 1) / *(L.m_data + (n - 1) * n + n - 1);
+	for (int i = n - 2; i >= 0; i--)
+	{
+		double sum = 0.0;
+		for (int j = n - 1; j > i; j--)
+			sum += *(L.m_data + i * n + j) * *(x.m_data + j);
+		*(x.m_data + i) = (*(y.m_data + i) - sum) / *(L.m_data + i * n + i);
+	}
+
+
+}
+/// <summary>
+/// Вычисление минора квадаратной матрицы
+/// </summary>
+/// <param name="i">строка</param>
+/// <param name="j">столбец</param>
+/// <returns>значение минора, в случае ошибки NAN</returns>
+double MATRIX::Minor(int i, int j)
+{
+	int n = m_rows;
+	if (m_columns != m_rows)
+	{
+		throw "Миноры вычисляются только для квадратной матрицы";
+		return NAN;
+	}
+	if (i < 0 || j < 0 || i > n - 1 || j > n - 1 || m_columns != m_rows) 
+	{
+		throw "Выход индексов минора за допустимые пределы";
+		return NAN;
+	}
+	MATRIX minor(n - 1,n - 1);
+
+	// заполнение матрицы минора данными
+	for (int k = 0; k < n; k++)
+	{
+		for (int m = 0; m < n; m++)
+		{
+			if (k < i && m < j)
+				*(minor.m_data + k * (n - 1) + m) = *(m_data + k * n + m);
+			else if (k < i && m > j)
+				*(minor.m_data + k * (n - 1) + m - 1) = *(m_data + k * n + m);
+			else if (k > i && m < j)
+				*(minor.m_data + (k - 1) * (n - 1) + m) = *(m_data + k * n + m);
+			else if (k > i && m > j)
+				*(minor.m_data + (k - 1) * (n - 1) + m - 1) = *(m_data + k * n + m);
+		}
+	}
+
+	return minor.Determinant();
+}
+/// <summary>
+/// Возвращает обратную матрицу при помощи алгебраических дополнений
+/// </summary>
+/// <returns>обратную матрицу</returns>
+MATRIX MATRIX::Reverse()
+{
+	MATRIX A(m_rows, m_columns);
+	if (m_rows != m_columns)
+	{
+		throw "Для вычисления обратной матрицы исходная матрица должна быть квадратной";
+		return A;
+	}
+	double det = Determinant();
+	
+	if (abs(det) >= 1.0e-36)
+	{
+		auto Minors = [&](int row_begin, int row_end, int column_begin, int column_end)
+			{
+				for (int i = row_begin; i < row_end; i++)
+					for (int j = column_begin; j < column_end; j++)
+					{
+						*(A.m_data + A.m_columns * i + j) = Minor(j, i) * ( (i + j) % 2 > 0 ? -1.0 : 1.0)  / det;
+					}
+			};
+		int size = A.m_rows;
+		if (size >= MIN_SIZE_FOR_THREAD)
+		{
+			int size2 = size / 2;
+			thread t1(Minors, 0, size2, 0, size2);
+			thread t2(Minors, size2, size, 0, size2);
+			thread t3(Minors, 0, size2, size2, size);
+			thread t4(Minors, size2, size, size2, size);
+
+			t1.join();
+			t2.join();
+			t3.join();
+			t4.join();
+		}
+		else
+			Minors(0, size, 0, size);
+	}
+
+
+	return A;
+}
+/// <summary>
+/// Обращение марицы при пощи решения систем уравнений A*X = E, колонки матрицы X - столбцы обратной матрицы
+/// </summary>
+/// <returns>обратную матрицу</returns>
+MATRIX MATRIX::Invert()
+{
+	MATRIX A(m_rows, m_columns);
+	if (m_rows != m_columns)
+	{
+		throw "Для вычисления обратной матрицы исходная матрица должна быть квадратной";
+		return A;
+	}
+
+	MATRIX alpha(m_rows, m_columns);
+	double det = FormMatrixCompactScheme(alpha);
+
+	if (abs(det) < 1.0e-36)
+	{
+		throw "Это вырожденная матрица";
+		return A;
+	}
+	
+	for (int i = 0; i < m_columns; i++)
+	{
+		VECTOR e(m_columns), x(m_columns);
+		for (int j = 0; j < m_columns; j++)
+		{
+			if(i == j) e[j] = 1.0;
+		}
+		TriangleSolve(alpha, e, x);
+		CopyColumn(A, x, i);
+	}
+	return A;
+}
+
+	/// <summary>
+	/// Копировать вектор в колонку матрицы
+	/// </summary>
+	/// <param name="A">матрица</param>
+	/// <param name="v">вектор</param>
+	/// <param name="j">номер колонки</param>
+	void CopyColumn(MATRIX & A, VECTOR &v, int j)
+	{
+		int n = A.m_columns;
+		if (j > n)
+		{
+			throw "Номер колонки превышает число колонок матрицы";
+			return;
+		}
+		if (n != v.m_size)
+		{
+			throw "Число колонок матрицы не совпадает с размерностью вектора";
+			return;
+		}
+		for (int i = 0; i < A.m_rows; i++)
+			*(A.m_data + i * n + j) = *(v.m_data + i);
+	}
+
+
+
