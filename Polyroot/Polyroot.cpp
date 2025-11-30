@@ -24,7 +24,28 @@ complex<double> Polyfun(complex<double> z, const double* koeff, const int n)
 // roots - массив с корнями полинома
 void Polyroots(const double* koeff, const int n, complex<double>* roots)
 {
-    
+    complex<double>* prev_iter = new complex<double>[n];
+    double err = 1.0;
+    do
+    {
+        for (int i = 0; i < n; i++)
+        {
+            prev_iter[i] = roots[i];
+            complex<double> pr(0, 0);
+            for (int j = 0; j < n; j++)
+            {
+                if (i != j) pr *= roots[i] - roots[j];
+            }
+            roots[i] = prev_iter[i] - Polyfun(prev_iter[i], koeff, n) / pr;
+        }
+        double err = 0;
+        for (int i = 0; i < n; i++)
+        {
+            err += pow(abs(roots[i] - prev_iter[i]) / abs(prev_iter[i]), 2.0);
+        }
+        err = sqrt(err);
+
+    }while(err < 1.0e-6)
 }
 
 int main()
