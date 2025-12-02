@@ -2,13 +2,42 @@
 #include <complex>
 using namespace std;
 #define EPS 1.0e-12
+#define MAX_ITER_NUMBER 30000
+
+// генератор вещественных случайных чисел
+double randomDouble()
+{
+    return (double)(rand()) / (double)(rand());
+}
+
+// Заполнение массива начальных значений корней полинома init_values
+// при помощи генератора случайных чисел
+// n - степень полинома.
+// Если полином нечётной степени, то первый элемент массива - вещественное число
+
+void FillInitialValues(complex<double>* init_values, int n)
+{
+    srand(time(0));
+    int i = 0;
+    while (i < n)
+    {
+        if (i == 0) init_values[i] = complex<double>(randomDouble(), n % 2 != 0 ? 0 : randomDouble());
+        else
+        {
+            init_values[i] = complex<double>(randomDouble(), randomDouble());
+            i++;
+            init_values[i] = conj(init_values[i - 1]);
+        }
+        i++;
+    }
+}
 
 
-// Полином a[n]*x ^ n + a[n - 1] * x ^ (n - 1) + ... + a[0] 
+// Полином koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0] 
 // n - степень полинома
 // koeff - массив вещественных коэффициентов полинома размерностью n+1
 
-complex<double> Polyfun(const complex<double> &z, const double* koeff, const int n)
+complex<double> Polyfun(const complex<double> &z, const double* koeff, int n)
 {
     complex<double> poly(0, 0);
     poly += koeff[0] + koeff[1] * z + koeff[2] * z * z;
@@ -22,9 +51,9 @@ complex<double> Polyfun(const complex<double> &z, const double* koeff, const int
     return poly;
 }
 
-// Производная полинома n-ой степени
+// Производная полинома n-ой степени koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0]
 
-complex<double> PolyfunDerivative(const complex<double> &z, const double* koeff, const int n)
+complex<double> PolyfunDerivative(const complex<double> &z, const double* koeff, int n)
 {
     complex<double> poly(0, 0);
     poly += koeff[1] + 2.0 * koeff[2] * z + 3.0 * koeff[3] * z * z;
@@ -41,20 +70,21 @@ complex<double> PolyfunDerivative(const complex<double> &z, const double* koeff,
 
 // Поиск всех корней полинома степени n с вещественными коэффициентами 
 // методом Дюрана-Кернера (https://en.wikipedia.org/wiki/Durand–Kerner_method)
-// Полином a[n]*x^n+a[n-1]*x^(n-1)+...+a[0]
+// Полином koeff[n]*x^n+koeff[n-1]*x^(n-1)+...+koeff[0]
 // n - степень полинома
 // koeff - массив вещественных коэффициентов полинома размерностью n+1
 // roots - массив с корнями полинома размерностью n
-// prev_iter - массив начальных значений корней полинома
 
-void PolyrootsDC(const double* koeff, const int n, complex<double>* roots, complex<double> *prev_iter)
+void PolyrootsDC(const double* koeff, int n, complex<double>* roots)
 {
+    complex<double>* prev_iter = new complex<double>[n]; // массив начальных значений корней полинома
+    FillInitialValues(prev_iter, n);
     for (int i = 0; i < n; i++)
         roots[i] = prev_iter[i];
 
     double err = 1.0;
     int iter = 0;
-    while (err >= EPS && iter < 10000)
+    while (err >= EPS && iter < MAX_ITER_NUMBER)
     {
         for (int i = 0; i < n; i++)
         {            
@@ -80,25 +110,26 @@ void PolyrootsDC(const double* koeff, const int n, complex<double>* roots, compl
 #endif
 
     } 
-
+    delete[] prev_iter;
 }
 
 // Поиск всех корней полинома степени n с вещественными коэффициентами 
 // методом Аберта-Эрлиха (https://en.wikipedia.org/wiki/Aberth_method)
-// Полином a[n]*x^n+a[n-1]*x^(n-1)+...+a[0]
+// Полином koeff[n]*x^n+koeff[n-1]*x^(n-1)+...+koeff[0]
 // n - степень полинома
 // koeff - массив вещественных коэффициентов полинома размерностью n+1
 // roots - массив с корнями полинома размерностью n
-// w - массив начальных значений корней полинома, далее используется для чисел смещения
 
-void PolyrootsAE(const double* koeff, const int n, complex<double>* roots, complex<double>* w)
+void PolyrootsAE(const double* koeff, int n, complex<double>* roots)
 {
+    complex<double> *w = new complex<double>[n]; // массив начальных значений корней полинома, далее используется для чисел смещения
+    FillInitialValues(w, n);
     for (int i = 0; i < n; i++)
         roots[i] = w[i];
 
     double err = 1.0;
     int iter = 0;
-    while (err >= EPS && iter < 10000)
+    while (err >= EPS && iter < MAX_ITER_NUMBER)
     {
         for (int i = 0; i < n; i++)
         {
@@ -125,27 +156,17 @@ void PolyrootsAE(const double* koeff, const int n, complex<double>* roots, compl
 #endif
 
     }
-
+    delete[] w;
 }
 
 int main()
 {
     setlocale(LC_ALL, "");
-    double a[8]{ 201,1,-16,-12,31,121,9,8 }; // массив вещественных коэффициентов полинома 
+    double a[8]{ 201,1,-16,-12,0.031,121,9,8 }; // массив вещественных коэффициентов полинома 
     int n = 7; // степень полинома
     complex<double> *roots = new complex<double>[n]; // массив корней полинома
-    complex<double>* biter = new complex<double>[n]; // начальные значения корней полинома
 
-    biter[0] = complex<double>(15, 0);
-    biter[1] = complex<double>(0.5, 0.9);
-    biter[2] = conj(biter[1]);
-    biter[3] = complex<double>(0.7, 1.1);
-    biter[4] = conj(biter[3]);
-    biter[5] = complex<double>(0.35, 0.8);
-    biter[6] = conj(biter[5]);
-
-
-    PolyrootsAE(a, n, roots, biter); // поиск корней
+    PolyrootsDC(a, n, roots); // поиск корней
 
     cout << "*** Корни полинома ***" << endl;
     for (int i=0; i < n; i++)
@@ -163,8 +184,6 @@ int main()
 
 
     delete[] roots;
-    delete [] biter;
-    
 }
 
 
