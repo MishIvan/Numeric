@@ -5,7 +5,7 @@ using namespace std;
 #define MAX_ITER_NUMBER 30000
 
 // генератор вещественных случайных чисел
-double randomDouble()
+inline double randomDouble()
 {
     return (double)(rand()) / (double)(rand());
 }
@@ -17,7 +17,7 @@ double randomDouble()
 
 void FillInitialValues(complex<double>* init_values, int n)
 {
-    srand(time(0));
+    srand(1);
     int i = 0;
     while (i < n)
     {
@@ -96,14 +96,16 @@ void PolyrootsDC(const double* koeff, int n, complex<double>* roots)
             roots[i] = prev_iter[i] - (Polyfun(prev_iter[i], koeff, n) / koeff[n]) / pr;            
         }
         
-         err = 0;
+        // Проверка максимального модуля разности текущей и предыдущей итерации корней
+        err = -1.0;
+        double err_max = 0.0;
 
         for (int i = 0; i < n; i++)
         {
-            err += pow(abs(roots[i] - prev_iter[i]), 2.0);
+            err_max = abs(roots[i] - prev_iter[i]);
+            if (err_max > err) err = err_max;
             prev_iter[i] = roots[i];
         }
-        err = sqrt(err);
         iter++;
 #ifdef _DEBUG
         cout << "Кол-во итераций: " << iter << ". Значение погрешности вычислений: " << err << endl;
@@ -133,23 +135,25 @@ void PolyrootsAE(const double* koeff, int n, complex<double>* roots)
     {
         for (int i = 0; i < n; i++)
         {
-            complex<double> pr(0, 0), u(1,0);
+            complex<double> pr(0, 0);
             for (int j = 0; j < n; j++)
             {
-                if (i != j) pr += u / (roots[i] - roots[j]);
+                if (i != j) pr += 1.0 / (roots[i] - roots[j]);
             }
             complex<double> pp = Polyfun(roots[i], koeff, n) / PolyfunDerivative(roots[i], koeff, n);
-            w[i] = pp / (u - pp*pr);            
+            w[i] = pp / (1.0 - pp*pr);            
         }
 
-        err = 0;
+        // проверка максимального модуля чисел смещений
+        err = -1.0;
+        double err_max = 0.0;
 
         for (int i = 0; i < n; i++)
         {
-            err += pow(abs(w[i]), 2.0);
+            err_max = abs(w[i]);
+            if (err_max > err) err = err_max;
             roots[i] -= w[i];
         }
-        err = sqrt(err);
         iter++;
 #ifdef _DEBUG
         cout << "Кол-во итераций: " << iter << ". Значение погрешности вычислений: " << err << endl;
@@ -166,7 +170,7 @@ int main()
     int n = 7; // степень полинома
     complex<double> *roots = new complex<double>[n]; // массив корней полинома
 
-    PolyrootsDC(a, n, roots); // поиск корней
+    PolyrootsAE(a, n, roots); // поиск корней
 
     cout << "*** Корни полинома ***" << endl;
     for (int i=0; i < n; i++)
