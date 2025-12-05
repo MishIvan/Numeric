@@ -314,12 +314,42 @@ void TestLinearSystemSolve(char* appPath, char* path)
     }
 }
 
+void TestEigeValuesAndVectors(char* appPath, char* path)
+{
+    GetFullPathInWD(appPath, "Matrix_in.bak", path);
+    // считывание данных
+    ifstream fs;
+    fs.open(path);
+    if (fs.is_open())
+    {
+        int m, n;
+        fs >> m >> n;
+        MATRIX A(m, n);
+        fs >> A;
+        cout << "Матрица для поиска собственных значений" << endl;
+        cout << A << endl;  
+        fs.close();
+         
+        complex<double>* lambda = new complex<double>[n];
+        A.EigenvaluesKrylov(A, lambda);
+
+        cout << "Вектор собственных значений" << endl;
+        for (int i = 0; i < n; i++)
+            cout << lambda[i] << '\t';
+        cout << endl;
+        delete [] lambda;
+        
+    }
+
+}
+
 int main(int argc, char *argv[])
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
     char path[1024]; // буфер пути файла данных
-    TestMatrixReverse();
+    //TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
     //TestLinearSystemSolve(argv[0], path);
+    TestEigeValuesAndVectors(argv[0], path);
     
 }

@@ -18,9 +18,12 @@ public:
 	VECTOR(const VECTOR& src);
 	inline int size() { return m_size; } // возврат размерности вектора
 	double norm();
+	void Reverse();
 
 	VECTOR& operator=(const VECTOR& src);
+	inline const double* data() const { return m_data; };
 	friend double operator*(const VECTOR& v1, const VECTOR& v2);
+	friend VECTOR operator*(double a, const VECTOR& v);
 	friend VECTOR operator+(const VECTOR& v1, const VECTOR& v2);
 	friend VECTOR operator-(const VECTOR& v1, const VECTOR& v2);
 	friend ostream& operator<<(ostream& s, VECTOR& v);

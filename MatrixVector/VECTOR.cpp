@@ -68,6 +68,22 @@ double operator*(const VECTOR& v1, const VECTOR& v2)
 		prod += *(v1.m_data + i) * *(v2.m_data + i);
 	return prod;
 }
+
+/// <summary>
+/// ѕерегрузка оператора умножени€ ветора на вещественное число
+/// размерности векторов должны совпадать
+/// </summary>
+/// <param name="v">вектор</param>
+/// <param name="a">вещественное число</param>
+/// <returns>вектор - результат умножени€ </returns>
+VECTOR operator*(double a, const VECTOR& v)
+{
+	VECTOR res(v.m_size);
+	for (int i = 0; i < res.m_size; i++)
+		*(res.m_data + i) = a * *(v.m_data + i);
+	return res;
+}
+
 /// <summary>
 /// ѕерегрузка операторов вычитани€ и сложени€ векторов v1 и v2
 /// размерности векторов должны совпадать
@@ -77,8 +93,12 @@ double operator*(const VECTOR& v1, const VECTOR& v2)
 /// <returns>вектор - разность (сумму) векторов  </returns>
 VECTOR operator-(const VECTOR& v1, const VECTOR& v2)
 {
-	if (v1.m_size != v2.m_size) return VECTOR(3);
 	VECTOR res(v1.m_size);
+	if (v1.m_size != v2.m_size)
+	{
+		throw "¬екторы имеют разную размерность";
+		return res;
+	}	
 	for (int i = 0; i < res.m_size; i++)
 		*(res.m_data + i) = *(v1.m_data + i) - *(v2.m_data + i);
 	return res;
@@ -86,8 +106,12 @@ VECTOR operator-(const VECTOR& v1, const VECTOR& v2)
 
 VECTOR operator+(const VECTOR& v1, const VECTOR& v2)
 {
-	if (v1.m_size != v2.m_size) return VECTOR(3);
 	VECTOR res(v1.m_size);
+	if (v1.m_size != v2.m_size)
+	{
+		throw "¬екторы имеют разную размерность";
+		return res;
+	}	
 	for (int i = 0; i < res.m_size; i++)
 		*(res.m_data + i) = *(v1.m_data + i) - *(v2.m_data + i);
 	return res;
@@ -118,6 +142,18 @@ istream& operator>>(istream& s, VECTOR& v)
 	for (int i = 0; i < n; i++)
 		s >> *(v.m_data + i); 
 	return s;
+}
+
+/// <summary>
+/// –асставл€ет элементы ветора в обратном пор€дке: последний становитс€ первым, предпоследний вторым и т.д.
+/// </summary>
+void VECTOR::Reverse() {
+	int size = m_size;
+	for (int start = 0, end = size - 1; start < end; ++start, --end) 
+	{
+		// ћен€ем местами первый и последний элемент
+		swap(*(m_data+start), *(m_data+end));
+	}
 }
 
 /// <summary>

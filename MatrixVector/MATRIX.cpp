@@ -515,7 +515,6 @@ void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	A.QRDecomposition(Q, R);
 	VECTOR beta(b.m_size);
 	beta = Q.Transpose() * b;
-	cout << beta << endl;
 
 	// решение системы уравнений с верхней труегольной матрицей		   
 	*(x.m_data + n - 1) = *(beta.m_data + n - 1)/ *(R.m_data + (n - 1)*n + n - 1);
@@ -703,28 +702,181 @@ MATRIX MATRIX::Invert()
 	return A;
 }
 
-	/// <summary>
-	/// Копировать вектор в колонку матрицы
-	/// </summary>
-	/// <param name="A">матрица</param>
-	/// <param name="v">вектор</param>
-	/// <param name="j">номер колонки</param>
-	void CopyColumn(MATRIX & A, VECTOR &v, int j)
+/// <summary>
+/// Копировать вектор в колонку матрицы
+/// </summary>
+/// <param name="A">матрица</param>
+/// <param name="v">вектор</param>
+/// <param name="j">номер колонки</param>
+void CopyColumn(MATRIX & A, VECTOR &v, int j)
+{
+	int n = A.m_columns;
+	if (j > n)
 	{
-		int n = A.m_columns;
-		if (j > n)
+		throw "Номер колонки превышает число колонок матрицы";
+		return;
+	}
+	if (n != v.m_size)
+	{
+		throw "Число колонок матрицы не совпадает с размерностью вектора";
+		return;
+	}
+	for (int i = 0; i < A.m_rows; i++)
+		*(A.m_data + i * n + j) = *(v.m_data + i);
+}
+
+// Полином koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0] 
+// n - степень полинома
+// koeff - массив вещественных коэффициентов полинома размерностью n+1
+
+complex<double> Polyfun(const complex<double>& z, VECTOR& koeff)
+{
+	complex<double> poly(0, 0);
+	int n = koeff.size();
+	poly += koeff[0] + koeff[1] * z + koeff[2] * z * z;
+	double p = 0.0;
+	for (int i = 3; i < n; i++)
+	{
+		p = (double)i;
+		poly += koeff[i] * pow(z, p);
+
+	}
+	poly += pow(z, (double)n);
+	return poly;
+}
+
+// Производная полинома n-ой степени koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0]
+complex<double> PolyfunDerivative(const complex<double>& z, VECTOR &koeff)
+{
+	complex<double> poly(0, 0);
+	int n = koeff.size();
+	poly += koeff[1] + 2.0 * koeff[2] * z + 3.0 * koeff[3] * z * z;
+	double p = 0.0;
+	for (int i = 4; i < n; i++)
+	{
+		p = (double)(i - 1);
+		poly += ((double)i) * koeff[i] * pow(z, p);
+
+	}
+	poly += (double)n * pow(z, (double)(n - 1));
+	return poly;
+}
+
+#define EPS 1.0e-12
+#define MAX_ITER_NUMBER 30000
+inline double randomDouble()
+{
+	return (double)(rand()) / (double)(rand());
+}
+
+// Заполнение массива начальных значений корней полинома init_values
+// при помощи генератора случайных чисел
+// n - степень полинома.
+// Если полином нечётной степени, то первый элемент массива - вещественное число
+
+void FillInitialValues(complex<double>* init_values, int n)
+{
+	srand(1);
+	int i = 0;
+	while (i < n)
+	{
+		if (i == 0) init_values[i] = complex<double>(randomDouble(), n % 2 != 0 ? 0 : randomDouble());
+		else
 		{
-			throw "Номер колонки превышает число колонок матрицы";
-			return;
+			init_values[i] = complex<double>(randomDouble(), randomDouble());
+			if (i == n - 1) break;
+			i++;
+			init_values[i] = n % 2 != 0 ? conj(init_values[i - 1]) : complex<double>(randomDouble(), 0);
 		}
-		if (n != v.m_size)
+		i++;
+	}
+}
+
+// Поиск всех корней полинома степени n с вещественными коэффициентами 
+// методом Аберта-Эрлиха (https://en.wikipedia.org/wiki/Aberth_method)
+// Полином koeff[n]*x^n+koeff[n-1]*x^(n-1)+...+koeff[0]
+// n - степень полинома
+// koeff - массив вещественных коэффициентов полинома размерностью n+1
+// roots - массив с корнями полинома размерностью n
+
+void Polyroots(VECTOR &koeff, complex<double>* roots)
+{
+	int n = koeff.size();
+	complex<double>* w = new complex<double>[n]; // массив начальных значений корней полинома, далее используется для чисел смещения
+	FillInitialValues(roots, n);
+
+	double err = 1.0;
+	int iter = 0;
+	while (err >= EPS && iter < MAX_ITER_NUMBER)
+	{
+		for (int i = 0; i < n; i++)
 		{
-			throw "Число колонок матрицы не совпадает с размерностью вектора";
-			return;
+			complex<double> pr(0, 0);
+			for (int j = 0; j < n; j++)
+			{
+				if (i != j) pr += 1.0 / (roots[i] - roots[j]);
+			}
+			complex<double> pp = Polyfun(roots[i], koeff) / PolyfunDerivative(roots[i], koeff);
+			w[i] = pp / (1.0 - pp * pr);
 		}
-		for (int i = 0; i < A.m_rows; i++)
-			*(A.m_data + i * n + j) = *(v.m_data + i);
+
+		// проверка максимального модуля чисел смещений
+		err = -1.0;
+		double err_max = 0.0;
+
+		for (int i = 0; i < n; i++)
+		{
+			err_max = abs(w[i]);
+			if (err_max > err) err = err_max;
+			roots[i] -= w[i];
+		}
+		iter++;
+#ifdef _DEBUG
+		cout << "Кол-во итераций: " << iter << ". Значение погрешности вычислений: " << err << endl;
+#endif
+
+	}
+	delete[] w;
+}
+
+/// <summary>
+/// Нахождение собственных значений матрицы методом Крылова А.Н.
+/// </summary>
+/// <param name="A">матрица</param>
+/// <param name="lambda">массив собственных значений</param>
+void MATRIX::EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda)
+{
+	if (A.m_rows != A.m_columns)
+	{
+		throw "Матрица не квадратная";
+		return;
 	}
 
+	int n = A.m_columns;
+	VECTOR mcolumn(n);
+	MATRIX a(n, n);
+	mcolumn[0] = 1.0;	
 
+	for (int i = 0; i < n; i++)
+	{
+		CopyColumn(a, mcolumn, i);
+		mcolumn = A * mcolumn;
+	}
+
+	VECTOR p(n); // значения коэффициентов полинома
+	QRDecompositionSolve(a, mcolumn, p);
+	p = -1.0 * p;
+#ifdef _DEBUG
+	cout << "Матрица СЛАУ для определения коэффициентов полинома" << endl;
+	cout << a << endl;
+
+	cout << "Вектор правой части для определения коэффициентов характеристического полинома" << endl;
+	cout << mcolumn << endl;
+
+	cout << "Коэффициенты характеристического полинома" << endl;
+	cout << p << endl;
+#endif // _DEBUG
+
+	Polyroots(p, lambda);
+}
 

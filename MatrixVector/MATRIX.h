@@ -1,5 +1,6 @@
 #pragma once
 #include "VECTOR.h"
+#include <complex>
 /// <summary>
 /// Класс "матрица" матрица размера M x N
 /// </summary>
@@ -44,6 +45,8 @@ public:
 
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
+
+	void EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda);
 
 	~MATRIX();
 };
