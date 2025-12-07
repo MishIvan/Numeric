@@ -52,16 +52,7 @@ MATRIX& MATRIX::operator=(const MATRIX& src)
 			*(this->m_data + i * this->m_columns + j) = *(src.m_data + i * src.m_columns + j);
 	return *this;
 }
-/// <summary>
-/// Элемент матрицы
-/// </summary>
-/// <param name="i">строка</param>
-/// <param name="j">колонка</param>
-/// <returns>элемент на i-ой строке и j-ой колонке</returns>
-//double& MATRIX::operator()(int i, int j)
-//{
-//	return *(m_data + i * m_columns + j);
-//}
+
 /// <summary>
 /// Перегрузка оператора умножения матриц matr1 и matr2
 /// Число столбцов матрицы matr1 должно быть равно числу строк матрицы matr2
@@ -697,35 +688,51 @@ MATRIX MATRIX::Invert()
 			if(i == j) e[j] = 1.0;
 		}
 		TriangleSolve(alpha, e, x);
-		CopyColumn(A, x, i);
+		A.CopyColumn(x, i);
 	}
 	return A;
 }
 
 /// <summary>
-/// Копировать вектор в колонку матрицы
+/// Копировать вектор в  j-ю колонку матрицы
 /// </summary>
-/// <param name="A">матрица</param>
 /// <param name="v">вектор</param>
 /// <param name="j">номер колонки</param>
-void CopyColumn(MATRIX & A, VECTOR &v, int j)
+void MATRIX::CopyColumn(VECTOR &v, int j)
 {
-	int n = A.m_columns;
-	if (j > n)
+	if (m_columns < j)
 	{
 		throw "Номер колонки превышает число колонок матрицы";
 		return;
 	}
-	if (n != v.m_size)
+	if (m_rows != v.size())
 	{
-		throw "Число колонок матрицы не совпадает с размерностью вектора";
+		throw "Число строк (число элементов в колонке) матрицы не совпадает с размерностью вектора";
 		return;
 	}
-	for (int i = 0; i < A.m_rows; i++)
-		*(A.m_data + i * n + j) = *(v.m_data + i);
+	for (int i = 0; i < m_rows; i++)
+		*(m_data + i * m_columns + j) = v[i];
 }
 
-// Полином koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0] 
+/// <summary>
+/// Копировать j-ю колонку матрицы в вектор
+/// </summary>
+/// <param name="j">номер колонки</param>
+/// <returns>вектор содержащий колонку матрицы</returns>
+VECTOR MATRIX::CopyColumn2Vector(int j)
+{
+	VECTOR v(m_rows);
+	if (m_columns < j)
+	{
+		throw "Номер колонки превышает число колонок матрицы";
+		return v;
+	}
+	for (int i = 0; i < m_rows; i++)
+		v[i] = *(m_data + i * m_columns + j);
+	return v;
+}
+
+// Характеристический полином x ^ n + koeff[1] * x ^ (n - 1) + ... + koeff[n-1] 
 // n - степень полинома
 // koeff - массив вещественных коэффициентов полинома размерностью n+1
 
@@ -733,29 +740,29 @@ complex<double> Polyfun(const complex<double>& z, VECTOR& koeff)
 {
 	complex<double> poly(0, 0);
 	int n = koeff.size();
-	poly += koeff[0] + koeff[1] * z + koeff[2] * z * z;
+	poly = -1.0*koeff[n-1] - koeff[n-2] * z - koeff[n-3] * z * z;
 	double p = 0.0;
 	for (int i = 3; i < n; i++)
 	{
 		p = (double)i;
-		poly += koeff[i] * pow(z, p);
+		poly -= koeff[n-i-1] * pow(z, p);
 
 	}
 	poly += pow(z, (double)n);
 	return poly;
 }
 
-// Производная полинома n-ой степени koeff[n]*x ^ n + koeff[n - 1] * x ^ (n - 1) + ... + koeff[0]
+// Производная характеристического полинома x ^ n + koeff[1] * x ^ (n - 1) + ... + koeff[n-1]
 complex<double> PolyfunDerivative(const complex<double>& z, VECTOR &koeff)
 {
 	complex<double> poly(0, 0);
 	int n = koeff.size();
-	poly += koeff[1] + 2.0 * koeff[2] * z + 3.0 * koeff[3] * z * z;
+	poly = -1.0*koeff[n-2] - 2.0 * koeff[n-3] * z - 3.0 * koeff[n-4] * z * z;
 	double p = 0.0;
 	for (int i = 4; i < n; i++)
 	{
 		p = (double)(i - 1);
-		poly += ((double)i) * koeff[i] * pow(z, p);
+		poly -= ((double)i) * koeff[n-i-1] * pow(z, p);
 
 	}
 	poly += (double)n * pow(z, (double)(n - 1));
@@ -840,11 +847,12 @@ void Polyroots(VECTOR &koeff, complex<double>* roots)
 }
 
 /// <summary>
-/// Нахождение собственных значений матрицы методом Крылова А.Н.
+/// Нахождение собственных значений и собственных векторов матрицы методом Крылова А.Н.
 /// </summary>
 /// <param name="A">матрица</param>
 /// <param name="lambda">массив собственных значений</param>
-void MATRIX::EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda)
+/// <param name="vect">массив собственных значений</param>
+void MATRIX::EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambda, complex<double> **vect)
 {
 	if (A.m_rows != A.m_columns)
 	{
@@ -852,20 +860,20 @@ void MATRIX::EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda)
 		return;
 	}
 
+	// поиск собственных значений
 	int n = A.m_columns;
 	VECTOR mcolumn(n);
 	MATRIX a(n, n);
 	mcolumn[0] = 1.0;	
 
-	for (int i = 0; i < n; i++)
+	for (int i = n-1; i >=0; i--)
 	{
-		CopyColumn(a, mcolumn, i);
+		a.CopyColumn(mcolumn, i);
 		mcolumn = A * mcolumn;
 	}
 
 	VECTOR p(n); // значения коэффициентов полинома
 	QRDecompositionSolve(a, mcolumn, p);
-	p = -1.0 * p;
 #ifdef _DEBUG
 	cout << "Матрица СЛАУ для определения коэффициентов полинома" << endl;
 	cout << a << endl;
@@ -876,7 +884,28 @@ void MATRIX::EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda)
 	cout << "Коэффициенты характеристического полинома" << endl;
 	cout << p << endl;
 #endif // _DEBUG
-
+	
 	Polyroots(p, lambda);
+
+	// поиск собственных векторов 
+	if (vect == nullptr) return; // только собственные значения
+	for (int i = 0; i < n; i++)
+	{
+		mcolumn = a.CopyColumn2Vector(0);
+		for (int j = 0; j < n; j++)
+			vect[i][j] = mcolumn[j];
+
+
+		complex<double> q(1, 0);
+		for (int k = 1; k < n; k++)
+		{
+			mcolumn = a.CopyColumn2Vector(k);
+			q = lambda[i] * q - p[k-1];
+			for (int j = 0; j < n; j++)
+			{
+				vect[i][j] += mcolumn[j] * q;
+			}
+		}
+	}
 }
 

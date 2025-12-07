@@ -281,6 +281,8 @@ void TestLinearSystemSolve(char* appPath, char* path)
         cout << endl << "Вектор правой части СЛАУ v" << endl;
         cout << v << endl;
 
+        fs.close();
+
         VECTOR x(A.rows());
         double det = A.Determinant();
         bool res = true; 
@@ -300,23 +302,20 @@ void TestLinearSystemSolve(char* appPath, char* path)
 
             cout << endl << "Определитель марицы A равен " << det << endl;
 
-            VECTOR vn(x.size());
+            //VECTOR vn(x.size());
             // vn = A*x - v;
             double norm = (A * x - v).norm();
             cout << endl << "Норма невязки " << norm << endl;
 
         }
 
-        //TestQRDecomposition(A);
-        //TestCholeskyDecomposuition(A);
-
-        fs.close();
+        
     }
 }
 
 void TestEigeValuesAndVectors(char* appPath, char* path)
 {
-    GetFullPathInWD(appPath, "Matrix_in.bak", path);
+    GetFullPathInWD(appPath, "Matrix_in.test", path);
     // считывание данных
     ifstream fs;
     fs.open(path);
@@ -331,13 +330,34 @@ void TestEigeValuesAndVectors(char* appPath, char* path)
         fs.close();
          
         complex<double>* lambda = new complex<double>[n];
-        A.EigenvaluesKrylov(A, lambda);
+        complex<double>** vects;
+        vects = new complex<double>*[n]; 
+        for (int i = 0; i < n; i++)
+            vects[i] = new complex<double>[n];
+
+        A.EigenvaluesAndVectorsKrylov(A, lambda, vects);
 
         cout << "Вектор собственных значений" << endl;
         for (int i = 0; i < n; i++)
             cout << lambda[i] << '\t';
         cout << endl;
+
+        cout << "Собственные вектора матрицы" << endl;
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                complex<double> val = vects[i][j];
+                cout << val << '\t';
+            }
+            cout << endl;
+
+        }
         delete [] lambda;
+        for (int i = 0; i < n; i++)
+            delete [] vects[i];
+        delete[] vects;
+
         
     }
 

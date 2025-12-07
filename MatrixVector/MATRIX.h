@@ -40,13 +40,14 @@ public:
 	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void CopyColumn(MATRIX& A, VECTOR& v, int j);
+	void CopyColumn(VECTOR& v, int j);
+	VECTOR CopyColumn2Vector(int j);
 	
 
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
 
-	void EigenvaluesKrylov(const MATRIX& A, complex<double>* lambda);
+	void EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambda, complex<double> ** vect);
 
 	~MATRIX();
 };
