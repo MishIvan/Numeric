@@ -70,7 +70,11 @@ MATRIX operator*(const MATRIX& matr1, const MATRIX& matr2)
 		{
 			double prod = 0.0;
 			for (int k = 0; k < matr1.m_columns; k++)
+			{
+				if (*(matr1.m_data + i * matr1.m_columns + k) == 0.0 || *(matr2.m_data + k * matr2.m_columns + j) == 0.0)
+					continue;
 				prod += *(matr1.m_data + i * matr1.m_columns + k) * *(matr2.m_data + k * matr2.m_columns + j);
+			}
 			*(pmatr.m_data + i * pmatr.m_columns + j) = prod;
 		}
 	return pmatr;
@@ -183,6 +187,60 @@ bool MATRIX::IsSymmetric()
 	return true;
 }
 /// <summary>
+/// Вычислить след матрицы, сумму её колонок по диагонали
+/// </summary>
+/// <returns>значение следа матрицы</returns>
+double MATRIX::Sp()
+{
+	double val = 0.0;
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)
+			if (i == j) val += *(m_data + i * m_columns + j);
+	return val;
+}
+
+/// <summary>
+/// Сложение мариц matr1 и matr2
+/// </summary>
+/// <param name="matr1">матрица</param>
+/// <param name="matr2">матрица</param>
+/// <returns>матрица - результат сложения</returns>
+ MATRIX operator+(const MATRIX& matr1, const MATRIX& matr2)
+{
+	MATRIX prod(matr1.m_rows, matr1.m_columns);
+	if (matr1.m_columns != matr2.m_columns && matr1.m_rows != matr2.m_rows)
+	{
+		throw("Размерности матриц не совпадают");
+		return prod;
+	}
+	for (int i = 0; i < matr1.m_rows; i++)
+		for (int j = 0; j < matr1.m_columns; j++)
+			*(prod.m_data + i*prod.m_columns + j) = *(matr1.m_data + i * matr1.m_columns + j) + *(matr2.m_data + i * matr2.m_columns + j);
+	return prod;
+}
+
+ /// <summary>
+/// Вычитание марицы matr2 из матрицы matr1
+/// </summary>
+/// <param name="matr1">матрица</param>
+/// <param name="matr2">матрица</param>
+/// <returns>матрица - результат вычитания</returns>
+ MATRIX operator-(const MATRIX& matr1, const MATRIX& matr2)
+ {
+	 MATRIX prod(matr1.m_rows, matr1.m_columns);
+	 if (matr1.m_columns != matr2.m_columns && matr1.m_rows != matr2.m_rows)
+	 {
+		 throw("Размерности матриц не совпадают");
+		 return prod;
+	 }
+	 for (int i = 0; i < matr1.m_rows; i++)
+		 for (int j = 0; j < matr1.m_columns; j++)
+			 *(prod.m_data + i * prod.m_columns + j) = *(matr1.m_data + i * matr1.m_columns + j) - *(matr2.m_data + i * matr2.m_columns + j);
+	 return prod;
+ }
+
+
+/// <summary>
 /// Умножение марицы matr на вектор v
 /// </summary>
 /// <param name="matr">матрица</param>
@@ -196,11 +254,30 @@ VECTOR operator*(const MATRIX& matr, const VECTOR& v)
 	{
 		double val = 0.0;
 		for (int j = 0; j < matr.m_columns; j++)
+		{
+			if ( *(matr.m_data + i * matr.m_columns + j) == 0.0 || *(v.m_data + j) == 0.0) continue;
 			val += *(matr.m_data + i * matr.m_columns + j) * *(v.m_data + j);
+		}
 		*(prod.m_data + i) = val;
 	}
 	return prod;
 }
+
+/// <summary>
+/// Умножение марицы matr на скаляр alf
+/// </summary>
+/// <param name="matr">матрица</param>
+/// <param name="alf"></param>
+/// <returns>результат умножения, матрица</returns>
+MATRIX operator*(double alf, const MATRIX& matr)
+{
+	MATRIX prod(matr.m_rows, matr.m_columns );
+	for (int i = 0; i < matr.m_rows; i++)	
+		for (int j = 0; j < matr.m_columns; j++)
+			*(prod.m_data +i * prod.m_columns +j) += *(matr.m_data + i * matr.m_columns + j) * alf;	
+	return prod;
+}
+
 /// <summary>
 /// QR разложение квадратной матрицы
 /// </summary>
@@ -849,19 +926,18 @@ void Polyroots(VECTOR &koeff, complex<double>* roots)
 /// <summary>
 /// Нахождение собственных значений и собственных векторов матрицы методом Крылова А.Н.
 /// </summary>
-/// <param name="A">матрица</param>
 /// <param name="lambda">массив собственных значений</param>
-/// <param name="vect">массив собственных значений</param>
-void MATRIX::EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambda, complex<double> **vect)
+/// <param name="vect">массив собственных векторов</param>
+void MATRIX::EigenvaluesAndVectorsKrylov(complex<double>* lambda, complex<double> **vect)
 {
-	if (A.m_rows != A.m_columns)
+	if (m_rows != m_columns)
 	{
 		throw "Матрица не квадратная";
 		return;
 	}
 
 	// поиск собственных значений
-	int n = A.m_columns;
+	int n = m_columns;
 	VECTOR mcolumn(n);
 	MATRIX a(n, n);
 	mcolumn[0] = 1.0;	
@@ -869,7 +945,7 @@ void MATRIX::EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambd
 	for (int i = n-1; i >=0; i--)
 	{
 		a.CopyColumn(mcolumn, i);
-		mcolumn = A * mcolumn;
+		mcolumn = *this * mcolumn;
 	}
 
 	VECTOR p(n); // значения коэффициентов полинома
@@ -909,3 +985,92 @@ void MATRIX::EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambd
 	}
 }
 
+/// <summary>
+/// Нахождение собственных значений и собственных векторов матрицы методом Ле Веррье - Фаддеева Д.К.
+/// </summary>
+/// <param name="lambda">массив собственных значений</param>
+/// <param name="vect">массив собственных векторов</param>
+void MATRIX::EigenvaluesAndVectorsLeVerrierFaddeev(complex<double>* lambda, complex<double>** vect)
+{
+	if (m_rows != m_columns)
+	{
+		throw "Матрица не квадратная";
+		return;
+	}
+	// поиск собственных значений
+	int n = m_columns;
+	VECTOR p(n);
+	vector<VECTOR> b(n, VECTOR(n));
+	MATRIX A(n, n), B(n, n);
+
+	for (int i = 0; i < n; i++)
+	{
+		A = i == 0 ? *this : *this * B;
+		p[i] = A.Sp() / (i + 1);
+		for (int j = 0; j < n; j++)
+			for (int k = 0; k < n; k++)
+				if (j != k) B(j, k) = A(j, k);
+				else B(j, k) = A(j, k) - p[i];
+
+		b[i] = B.CopyColumn2Vector(0);
+	}
+
+#ifdef _DEBUG
+	cout << "Коэффициенты характеристического полинома" << endl;
+	cout << p << endl;
+#endif // _DEBUG
+
+	Polyroots(p, lambda);
+
+	// поиск собственных векторов 
+	if (vect == nullptr) return; // только собственные значения
+	complex<double>* y = new complex<double>[n];
+	
+	for (int i = 0; i < n; i++)
+	{
+		for (int k = 0; k < n; k++)
+			y[k] = k == 0 ? complex<double>(1, 0) : complex<double>(0, 0);
+		for (int j = 1; j < n; j++)
+		{
+			for (int k = 0; k < n; k++)
+				y[k] = lambda[i] * y[k] + b[j-1][k];
+
+		}
+
+		for (int k = 0; k < n; k++)
+			vect[i][k] = y[k];
+	}
+	delete[] y;
+}
+
+/// <summary>
+/// Обращение матрицы методом Фаддеева Д.К.
+/// </summary>
+/// <returns>обратную матрицу</returns>
+MATRIX MATRIX::InvertFaddev()
+{
+	MATRIX Ainv(m_rows, m_columns);
+	if (m_rows != m_columns)
+	{
+		throw "Матрица не квадратная";
+		return Ainv;
+	}
+	// поиск собственных значений
+	int n = m_columns;
+	VECTOR p(n);
+
+	MATRIX A(n, n), B(n, n);
+
+	for (int i = 0; i < n; i++)
+	{
+		A = i == 0 ? *this : *this * B;
+		p[i] = A.Sp() / (i + 1);
+		if (i == n - 1) Ainv = B;
+		for (int j = 0; j < n; j++)
+			for (int k = 0; k < n; k++)
+				if (j != k) B(j, k) = A(j, k);
+				else B(j, k) = A(j, k) - p[i];
+	}
+	Ainv = (1.0 / p[n - 1]) * Ainv;
+	return Ainv;
+}

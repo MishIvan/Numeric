@@ -221,23 +221,31 @@ void TestMatrixReverse()
 {
     int size = 10;
     MATRIX A(size, size), A1(size, size);
+    srand(1);
     for (int i = 0; i < size; i++)
         for (int j = 0; j < size; j++)
-            A(i, j) = fmod((double)(i + 1) ,(double)(j + 2)) +0.25;
+            // A(i, j) = fmod((double)(i + 1) ,(double)(j + 2)) +0.25;
+            A(i, j) = (double)rand() / (double)rand();
  
-    cout << endl << "Matrix A" << endl;
-    cout << A << endl;
+    if (size < 20)
+    {
+        cout << endl << "Matrix A" << endl;
+        cout << A << endl;
+    }
     
     clock_t  time_end;
-    //A1 = A.Reverse();
-    A1 = A.Invert();
+    //A1 = A.Reverse(); // вычислением алгебраических дополнений
+    //A1 = A.Invert();    // решением системы
+    A1 = A.InvertFaddev();
     time_end = clock();
     double secs = (double)time_end / CLOCKS_PER_SEC;
     cout << "Время решения " << secs << " сек" << endl;
 
-
-    cout << endl << "Matrix A(-1)" << endl;
-    cout << A1 << endl;
+    if (size < 20)
+    {
+        cout << endl << "Matrix A(-1)" << endl;
+        cout << A1 << endl;
+    }
 
     MATRIX E(A.rows(), A.columns());
     E = A1 * A;
@@ -252,8 +260,11 @@ void TestMatrixReverse()
             if (i != j && fabs(E(i, j)) > emax) emax = fabs(E(i, j));
         }
    
-    cout << endl << "Matrix A(-1)*A" << endl;
-    cout << E << endl;
+    if (size < 20)
+    {
+        cout << endl << "Matrix A(-1)*A" << endl;
+        cout << E << endl;
+    }
 
     cout << "Максимальный по модулю внедиагональный элемент матрицы A(-1)*A: " << emax << endl;
 
@@ -315,7 +326,7 @@ void TestLinearSystemSolve(char* appPath, char* path)
 
 void TestEigeValuesAndVectors(char* appPath, char* path)
 {
-    GetFullPathInWD(appPath, "Matrix_in.test", path);
+    GetFullPathInWD(appPath, "Matrix_in.txt", path);
     // считывание данных
     ifstream fs;
     fs.open(path);
@@ -335,7 +346,7 @@ void TestEigeValuesAndVectors(char* appPath, char* path)
         for (int i = 0; i < n; i++)
             vects[i] = new complex<double>[n];
 
-        A.EigenvaluesAndVectorsKrylov(A, lambda, vects);
+        A.EigenvaluesAndVectorsLeVerrierFaddeev(lambda, vects);
 
         cout << "Вектор собственных значений" << endl;
         for (int i = 0; i < n; i++)
@@ -367,9 +378,9 @@ int main(int argc, char *argv[])
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
     char path[1024]; // буфер пути файла данных
-    //TestMatrixReverse();
+    TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
     //TestLinearSystemSolve(argv[0], path);
-    TestEigeValuesAndVectors(argv[0], path);
+    //TestEigeValuesAndVectors(argv[0], path);
     
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "VECTOR.h"
 #include <complex>
+#include <vector>
 /// <summary>
 /// Класс "матрица" матрица размера M x N
 /// </summary>
@@ -24,11 +25,16 @@ public:
 	friend ostream& operator<<(ostream& s, MATRIX& matr);
 	friend istream& operator>>(istream& s, MATRIX& matr);
 	friend VECTOR operator*(const MATRIX& matr, const VECTOR& v);
+	friend MATRIX operator*(double alf, const MATRIX& matr);
+	friend MATRIX operator+(const MATRIX& matr1, const MATRIX& matr2);
+	friend MATRIX operator-(const MATRIX& matr1, const MATRIX& matr2);
+
 	MATRIX Transpose();
 	MATRIX Reverse();
 	MATRIX Invert();
-
+	MATRIX InvertFaddev();
 	double Determinant();
+	double Sp();
 	double Minor(int i, int j);
 	bool IsSymmetric();
 
@@ -40,14 +46,15 @@ public:
 	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+
 	void CopyColumn(VECTOR& v, int j);
 	VECTOR CopyColumn2Vector(int j);
 	
-
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
 
-	void EigenvaluesAndVectorsKrylov(const MATRIX& A, complex<double>* lambda, complex<double> ** vect);
+	void EigenvaluesAndVectorsKrylov(complex<double>* lambda, complex<double> ** vect);
+	void EigenvaluesAndVectorsLeVerrierFaddeev(complex<double>* lambda, complex<double>** vect);
 
 	~MATRIX();
 };
