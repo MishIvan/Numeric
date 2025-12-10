@@ -2,6 +2,7 @@
 #include "VECTOR.h"
 #include <complex>
 #include <vector>
+#include <cmath>
 /// <summary>
 /// Класс "матрица" матрица размера M x N
 /// </summary>
@@ -28,6 +29,8 @@ public:
 	friend MATRIX operator*(double alf, const MATRIX& matr);
 	friend MATRIX operator+(const MATRIX& matr1, const MATRIX& matr2);
 	friend MATRIX operator-(const MATRIX& matr1, const MATRIX& matr2);
+	MATRIX& operator/=(double val);
+	MATRIX& operator*=(const MATRIX& matr);
 
 	MATRIX Transpose();
 	MATRIX Reverse();
@@ -37,6 +40,7 @@ public:
 	double Sp();
 	double Minor(int i, int j);
 	bool IsSymmetric();
+	double UndiagonalSquareSumm();
 
 	static bool readFromFile(const char* fileName, MATRIX& matr);
 	static bool writeToFile(const char* fileName, MATRIX& matr);
@@ -55,6 +59,7 @@ public:
 
 	void EigenvaluesAndVectorsKrylov(complex<double>* lambda, complex<double> ** vect);
 	void EigenvaluesAndVectorsLeVerrierFaddeev(complex<double>* lambda, complex<double>** vect);
+	void Rotate(double* lambda, double** vect);
 
 	~MATRIX();
 };

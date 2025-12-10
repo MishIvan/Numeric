@@ -43,10 +43,13 @@ MATRIX::MATRIX(const MATRIX& src)
 /// <returns></returns>
 MATRIX& MATRIX::operator=(const MATRIX& src)
 {
-	if (!this->m_data) delete[] this->m_data;
-	this->m_columns = src.m_columns;
-	this->m_rows = src.m_rows;
-	this->m_data = new double[this->m_rows * this->m_columns];
+	if (this->m_rows != src.m_rows || this->m_columns != src.m_columns)
+	{
+		if (!this->m_data) delete[] this->m_data;
+		this->m_columns = src.m_columns;
+		this->m_rows = src.m_rows;
+		this->m_data = new double[this->m_rows * this->m_columns];
+	}
 	for (int i = 0; i < this->m_rows; i++)
 		for (int j = 0; j < this->m_columns; j++)
 			*(this->m_data + i * this->m_columns + j) = *(src.m_data + i * src.m_columns + j);
@@ -63,7 +66,11 @@ MATRIX& MATRIX::operator=(const MATRIX& src)
 MATRIX operator*(const MATRIX& matr1, const MATRIX& matr2)
 {
 	MATRIX pmatr(matr1.m_rows, matr2.m_columns);
-	if (matr1.m_columns != matr2.m_rows) return pmatr;
+	if (matr1.m_columns != matr2.m_rows)
+	{
+		throw("Несоответствие размерности матриц");
+		return pmatr;
+	}
 	int i, j;
 	for(i = 0; i < matr1.m_rows; i++)
 		for (j = 0; j < matr2.m_columns; j++)
@@ -199,6 +206,15 @@ double MATRIX::Sp()
 	return val;
 }
 
+double MATRIX::UndiagonalSquareSumm()
+{
+	double val = 0.0;
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)
+			if (i != j) val += *(m_data + i * m_columns + j) * *(m_data + i * m_columns + j);
+	return val;
+}
+
 /// <summary>
 /// Сложение мариц matr1 и matr2
 /// </summary>
@@ -263,6 +279,45 @@ VECTOR operator*(const MATRIX& matr, const VECTOR& v)
 	return prod;
 }
 
+/// <summary>
+/// Умножение матрицы на матрицу matr справа. Результат записывается в матрицу
+/// </summary>
+/// <param name="matr">матрица, на которую умножают справа</param>
+/// <returns>эта матрица как результат умножения</returns>
+MATRIX& MATRIX::operator*=(const MATRIX& matr)
+{
+	if (m_columns != matr.m_rows)
+	{
+		throw("Несоответсвие размерности матриц");
+		return *this;
+	}
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)
+		{
+			double val = 0.0;
+			for (int k = 0; k < m_columns; k++)
+			{
+				if (*(m_data + i * m_columns + k) == 0.0 || *(matr.m_data + k * matr.m_columns + j) == 0.0)
+					continue;
+				val += *(m_data + i * m_columns + k) * *(matr.m_data + k * matr.m_columns + j);
+			}
+			*(m_data + i * m_columns + j) = val;
+	}
+	return *this;
+}
+
+/// <summary>
+/// Деление элементов матрицы на число val
+/// </summary>
+/// <param name="val">число, на которое делятся элементы матрицы</param>
+/// <returns>матрица, элементы которой поделены на число val</returns>
+MATRIX& MATRIX::operator/=(double val)
+{
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)	
+			*(m_data + i * m_columns + j) /= val;
+	return *this;
+}
 /// <summary>
 /// Умножение марицы matr на скаляр alf
 /// </summary>
@@ -599,7 +654,7 @@ void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 /// <summary>
 /// Решение системы уравнений с применением метода LLT декомпозиции A = LLT
 /// </summary>
-/// <param name="A"></param>
+/// <param name="A">матрица</param>
 /// <param name="b"></param>
 /// <param name="x"></param>
 void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
@@ -610,7 +665,7 @@ void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	VECTOR bet(A.m_rows);
 
 	int n = A.m_rows;
-	if (!A.CholeskyDecomposition(L))
+	if (!A.IsSymmetric())
 	{
 		MATRIX At(A.m_rows, A.m_columns);
 		At = A.Transpose();
@@ -1071,6 +1126,104 @@ MATRIX MATRIX::InvertFaddev()
 				if (j != k) B(j, k) = A(j, k);
 				else B(j, k) = A(j, k) - p[i];
 	}
-	Ainv = (1.0 / p[n - 1]) * Ainv;
+	Ainv /= p[n - 1];
 	return Ainv;
+}
+
+/// <summary>
+/// Нахождение собственных значений и собственных векторов
+/// </summary>
+/// <param name="lambda">собственные значения</param>
+/// <param name="vect">собственные векторы</param>
+void MATRIX::Rotate(double* lambda, double** vect)
+{
+	if (!IsSymmetric())
+	{
+		throw "Метод вращений применяется только для симметричных матриц";
+		return;
+	}
+	MATRIX A(m_rows, m_columns), U(m_rows, m_columns);
+	A = *this;
+	int n = A.m_columns;
+	int iter = 1;
+	while (true)
+	{
+		// поиск позиции максимального по модулю внедиагонального элемента
+		int i0 = 0, j0 = 0;
+		double val = 0.0;
+		for(int i=0;i<n;i++)
+			for (int j = 0; j < n; j++)
+			{
+				double el = abs(*(A.m_data + i * A.m_columns + j));
+				if (i != j && el > val)
+				{
+					val = el;
+					i0 = i;
+					j0 = j;
+				}
+			}
+		if (val < EPS) break;
+		// угол матрицы вращения
+		double fi = 0.5 * atan(2.0 * *(A.m_data + i0 * A.m_columns + j0) / ( *(A.m_data + i0 * A.m_columns + i0) - *(A.m_data + j0 * A.m_columns + j0)));
+		double cs = cos(fi);
+		double ss = sin(fi);
+
+		// U0*U1*...Un
+		MATRIX U0(n, n), B(n,n);
+		
+		if (iter > 1)
+		{
+			U0 = U;
+			for (int i = 0; i < n; i++)
+			{
+				*(U.m_data + i * U.m_columns + i0) = *(U0.m_data + i * U0.m_columns + i0) * cs +
+					*(U0.m_data + i * U0.m_columns + j0) * ss;
+				*(U.m_data + i * U.m_columns + j0) = (-1.0) * *(U0.m_data + i * U0.m_columns + i0) * ss +
+					*(U0.m_data + i * U0.m_columns + j0) * cs;
+			}
+		}
+		else
+		{
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < n; j++)
+				{
+					if (i == j && i != i0 && j != j0) *(U0.m_data + i * U0.m_columns + j) = 1.0;
+					else if (i == i0 && j == i0) *(U0.m_data + i * U0.m_columns + j) = cs;
+					else if (i == i0 && j == j0) *(U0.m_data + i * U0.m_columns + j) = -ss;
+					else if (i == j0 && j == j0) *(U0.m_data + i * U0.m_columns + j) = cs;
+					else if (i == j0 && j == i0) *(U0.m_data + i * U0.m_columns + j) = ss;
+					else *(U0.m_data + i * U0.m_columns + j) = 0.0;
+				}
+
+			U = U0;
+		}
+
+		// Ut*A*U
+		B = A;
+		for (int i = 0; i < n; i++)
+		{
+			*(B.m_data + i * B.m_columns + i0) = *(A.m_data + i * A.m_columns + i0) * cs +
+				*(A.m_data + i * A.m_columns + j0) * ss;
+			*(B.m_data + i * B.m_columns + j0) = (-1.0) * *(A.m_data + i * A.m_columns + i0) * ss +
+				*(A.m_data + i * A.m_columns + j0) * cs;
+		}
+		A = B;
+		for (int i = 0; i < n; i++)
+		{
+			*(A.m_data + i0 * A.m_columns + i) = *(B.m_data + i0 * B.m_columns + i) * cs +
+				*(B.m_data + j0 * B.m_columns + i) * ss;
+			*(A.m_data + j0 * A.m_columns + i) = (-1.0) * *(B.m_data + i0 * B.m_columns + i) * ss +
+				*(B.m_data + j0 * B.m_columns + i) * cs;
+		}
+
+		iter++;
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		lambda[i] = A(i, i);
+		for (int j = 0; j < n; j++)
+			vect[i][j] = *(U.m_data + j * U.m_columns + i);
+	}
+
 }

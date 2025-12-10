@@ -46,9 +46,12 @@ double VECTOR::norm()
 /// <returns></returns>
 VECTOR& VECTOR::operator=(const VECTOR& src)
 {
-	if (!this->m_data) delete[] this->m_data;
-	this->m_data = new double[src.m_size];
-	this->m_size = src.m_size;
+	if (this->m_size != src.m_size)
+	{
+		if (!this->m_data) delete[] this->m_data;
+		this->m_data = new double[src.m_size];
+		this->m_size = src.m_size;
+	}
 	for (int i = 0; i < this->m_size; i++)
 		*(this->m_data + i) = *(src.m_data + i);
 	return *this;

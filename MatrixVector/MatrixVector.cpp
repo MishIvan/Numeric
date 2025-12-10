@@ -1,6 +1,7 @@
 ﻿// MatrixVector.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
 //
 #include <ctime>
+#include <chrono>
 #include "MATRIX.h"
 #include "MatrixVector.h"
 
@@ -219,12 +220,11 @@ void TestCholeskyDecomposuition(MATRIX& A)
 
 void TestMatrixReverse()
 {
-    int size = 10;
+    int size = 100;
     MATRIX A(size, size), A1(size, size);
-    srand(1);
+    srand(10);
     for (int i = 0; i < size; i++)
         for (int j = 0; j < size; j++)
-            // A(i, j) = fmod((double)(i + 1) ,(double)(j + 2)) +0.25;
             A(i, j) = (double)rand() / (double)rand();
  
     if (size < 20)
@@ -233,13 +233,17 @@ void TestMatrixReverse()
         cout << A << endl;
     }
     
-    clock_t  time_end;
-    //A1 = A.Reverse(); // вычислением алгебраических дополнений
+    //clock_t  time_end;
+    auto start = std::chrono::steady_clock::now();
+    A1 = A.Reverse(); // вычислением алгебраических дополнений
     //A1 = A.Invert();    // решением системы
-    A1 = A.InvertFaddev();
-    time_end = clock();
-    double secs = (double)time_end / CLOCKS_PER_SEC;
-    cout << "Время решения " << secs << " сек" << endl;
+    //A1 = A.InvertFaddev();
+    auto end = std::chrono::steady_clock::now();
+    //time_end = clock();
+    //double secs = (double)time_end / CLOCKS_PER_SEC;
+    auto duration = end - start;
+    std::chrono::duration<double> secs = duration;
+    cout << "Время решения " << secs.count() << " сек" << endl;
 
     if (size < 20)
     {
@@ -251,14 +255,14 @@ void TestMatrixReverse()
     E = A1 * A;
      
     // максимальный внедиагональный элемент по модулю матрицы E
-    int n = E.rows();
-    int m = E.columns();
-    double emax = 0.0;
-    for(int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
-        {
-            if (i != j && fabs(E(i, j)) > emax) emax = fabs(E(i, j));
-        }
+    //int n = E.rows();
+    //int m = E.columns();
+    double emax = E.UndiagonalSquareSumm();
+    //for(int i = 0; i < n; i++)
+    //    for (int j = 0; j < m; j++)
+    //    {
+    //        if (i != j && fabs(E(i, j)) > emax) emax = fabs(E(i, j));
+    //    }
    
     if (size < 20)
     {
@@ -266,7 +270,7 @@ void TestMatrixReverse()
         cout << E << endl;
     }
 
-    cout << "Максимальный по модулю внедиагональный элемент матрицы A(-1)*A: " << emax << endl;
+    cout << "Корень из суммы квадратов внедиагональных элементов A(-1)*A: " << sqrt(emax) << endl;
 
 
 }
@@ -297,17 +301,18 @@ void TestLinearSystemSolve(char* appPath, char* path)
         VECTOR x(A.rows());
         double det = A.Determinant();
         bool res = true; 
-        clock_t  time_end;
+        auto start = std::chrono::steady_clock::now();
         //res = Gauss(A, v, x);
         //CompactSchemeSolve(A, v, x);
         QRDecompositionSolve(A, v, x);
         //LLTDecompositionSolve(A, v, x);
+        auto end = std::chrono::steady_clock::now();
+        auto duration = end - start;
+        std::chrono::duration<double> secs = duration;
 
-        time_end = clock();
-        double secs = (double)time_end/CLOCKS_PER_SEC;
         if ((det != 0.0 || !isnan(det)) && res)
         {
-            cout << "Время решения " << secs << " сек" << endl;
+            cout << "Время решения " << secs.count() << " сек" << endl;
             cout << endl << "Вектор  решения CЛАУ A*x = v" << endl;
             cout << x;
 
@@ -337,12 +342,12 @@ void TestEigeValuesAndVectors(char* appPath, char* path)
         MATRIX A(m, n);
         fs >> A;
         cout << "Матрица для поиска собственных значений" << endl;
-        cout << A << endl;  
+        cout << A << endl;
         fs.close();
-         
+
         complex<double>* lambda = new complex<double>[n];
         complex<double>** vects;
-        vects = new complex<double>*[n]; 
+        vects = new complex<double>*[n];
         for (int i = 0; i < n; i++)
             vects[i] = new complex<double>[n];
 
@@ -364,13 +369,59 @@ void TestEigeValuesAndVectors(char* appPath, char* path)
             cout << endl;
 
         }
-        delete [] lambda;
+        delete[] lambda;
         for (int i = 0; i < n; i++)
-            delete [] vects[i];
+            delete[] vects[i];
         delete[] vects;
 
-        
     }
+}
+
+    void TestRotations(char* appPath, char* path)
+    {
+        GetFullPathInWD(appPath, "Matrix_in.test", path);
+        // считывание данных
+        ifstream fs;
+        fs.open(path);
+        if (fs.is_open())
+        {
+            int m, n;
+            fs >> m >> n;
+            MATRIX A(m, n);
+            fs >> A;
+            cout << "Матрица для поиска собственных значений" << endl;
+            cout << A << endl;
+            fs.close();
+
+            double* lambda = new double[n];
+            double** vects = new double*[n];
+            for (int i = 0; i < n; i++)
+                vects[i] = new double[n];
+
+            A.Rotate(lambda, vects);
+
+            cout << "Вектор собственных значений" << endl;
+            for (int i = 0; i < n; i++)
+                cout << lambda[i] << '\t';
+            cout << endl;
+
+            cout << "Собственные вектора матрицы" << endl;
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    double val = vects[i][j];
+                    cout << val << '\t';
+                }
+                cout << endl;
+
+            }
+            delete[] lambda;
+            for (int i = 0; i < n; i++)
+                delete[] vects[i];
+            delete[] vects;
+
+        }
 
 }
 
@@ -378,9 +429,10 @@ int main(int argc, char *argv[])
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
     char path[1024]; // буфер пути файла данных
-    TestMatrixReverse();
+    //TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
-    //TestLinearSystemSolve(argv[0], path);
+    TestLinearSystemSolve(argv[0], path);
     //TestEigeValuesAndVectors(argv[0], path);
+    //TestRotations(argv[0], path);
     
 }
