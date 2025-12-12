@@ -1,1 +1,1 @@
-void TestMatrixNVector(char* argv[], char  path[1024]);
+void TestMatrixNVector(char* , char  path[1024]);

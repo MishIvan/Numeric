@@ -127,14 +127,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="MATRIX.cpp" />
     <ClCompile Include="MatrixVector.cpp" />
-    <ClCompile Include="VECTOR.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MATRIX.h" />
-    <ClInclude Include="MatrixVector.h" />
-    <ClInclude Include="VECTOR.h" />
+    <ClInclude Include="MatrixVectorTemplate.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,28 +1,31 @@
+#pragma once
 #include "VECTOR.h"
+
 /// <summary>
 ///  онструктор вектора: выделение пам€ти под указатель и инициализаци€ компонент вектора значени€ми val
 /// </summary>
 /// <param name="n">размерность вектора</param>
-VECTOR::VECTOR(int n, double val)
+template <typename T>
+VECTOR<T>::VECTOR(int n)
 {
 	m_data = 0; m_size = 0;
 	if (n < 1) 
 		 return;
 	m_size = n;
-	m_data = new double[m_size];
-	for (int i = 0; i < m_size; i++)
-		*(m_data + i) = val;
+	m_data = new T[m_size];
+	memset(m_data, 0, sizeof m_data);
 
 }
 /// <summary>
 ///  онструктор копировани€ вектора src
 /// </summary>
 /// <param name="src">исходный вектор дл€ копировани€</param>
-VECTOR::VECTOR(const VECTOR& src)
+template <typename T>
+VECTOR<T>::VECTOR(const VECTOR& src)
 {
 	if (!this->m_data) delete[] this->m_data;
-	this->m_data = new double[src.m_size];
-	this->m_size = src.m_size;
+	this->m_data = new T[src.m_size];
+	this->m_size = src.m_size;	
 	for (int i = 0; i < this->m_size; i++)
 		*(this->m_data + i) = *(src.m_data + i);
 }
@@ -31,20 +34,22 @@ VECTOR::VECTOR(const VECTOR& src)
 /// ¬озвращает евклидову норму вектора
 /// </summary>
 /// <returns>yорма вектора</returns>
-double VECTOR::norm()
+template <typename T>
+double VECTOR<T>::norm()
 {
 	double val = 0.0;
 	for (int i = 0; i < m_size; i++)
-		val += *(m_data + i) * *(m_data + i);
+		val += abs(*(m_data + i)) * abs(*(m_data + i));
 	return sqrt(val);
 }
 
 /// <summary>
-/// 
+/// ќператор присвоени€
 /// </summary>
 /// <param name="src">исходный вестор дл€ присвоени€</param>
 /// <returns></returns>
-VECTOR& VECTOR::operator=(const VECTOR& src)
+template <typename T>
+VECTOR<T>& VECTOR<T>::operator=(const VECTOR& src)
 {
 	if (this->m_size != src.m_size)
 	{
@@ -62,13 +67,14 @@ VECTOR& VECTOR::operator=(const VECTOR& src)
 /// </summary>
 /// <param name="v1">первый вектор</param>
 /// <param name="v2">второй вектор</param>
-/// <returns></returns>
-double operator*(const VECTOR& v1, const VECTOR& v2)
+/// <returns>значение скал€рного произведени€</returns>
+template <typename T>
+T operator*(const VECTOR<T>& v1, const VECTOR<T>& v2)
 {
-	double prod = 0.0;
+	T prod = 0.0;
 	if (v1.m_size != v2.m_size) return prod;
 	for (int i = 0; i < v1.m_size; i++)
-		prod += *(v1.m_data + i) * *(v2.m_data + i);
+		prod += *(v1.m_data + i) *(v2.m_data + i);
 	return prod;
 }
 
@@ -79,9 +85,10 @@ double operator*(const VECTOR& v1, const VECTOR& v2)
 /// <param name="v">вектор</param>
 /// <param name="a">вещественное число</param>
 /// <returns>вектор - результат умножени€ </returns>
-VECTOR operator*(double a, const VECTOR& v)
+template <typename T>
+VECTOR<T> operator*(T a, const VECTOR<T>& v)
 {
-	VECTOR res(v.m_size);
+	VECTOR<T> res(v.m_size);
 	for (int i = 0; i < res.m_size; i++)
 		*(res.m_data + i) = a * *(v.m_data + i);
 	return res;
@@ -94,9 +101,10 @@ VECTOR operator*(double a, const VECTOR& v)
 /// <param name="v1"></param>
 /// <param name="v2"></param>
 /// <returns>вектор - разность (сумму) векторов  </returns>
-VECTOR operator-(const VECTOR& v1, const VECTOR& v2)
+template <typename T>
+VECTOR<T> operator-(const VECTOR<T>& v1, const VECTOR<T>& v2)
 {
-	VECTOR res(v1.m_size);
+	VECTOR<T> res(v1.m_size);
 	if (v1.m_size != v2.m_size)
 	{
 		throw "¬екторы имеют разную размерность";
@@ -106,17 +114,17 @@ VECTOR operator-(const VECTOR& v1, const VECTOR& v2)
 		*(res.m_data + i) = *(v1.m_data + i) - *(v2.m_data + i);
 	return res;
 }
-
-VECTOR operator+(const VECTOR& v1, const VECTOR& v2)
+template <typename T>
+VECTOR<T> operator+(const VECTOR<T>& v1, const VECTOR<T>& v2)
 {
-	VECTOR res(v1.m_size);
+	VECTOR<T> res(v1.m_size);
 	if (v1.m_size != v2.m_size)
 	{
 		throw "¬екторы имеют разную размерность";
 		return res;
 	}	
 	for (int i = 0; i < res.m_size; i++)
-		*(res.m_data + i) = *(v1.m_data + i) - *(v2.m_data + i);
+		*(res.m_data + i) = *(v1.m_data + i) + *(v2.m_data + i);
 	return res;
 }
 
@@ -126,7 +134,8 @@ VECTOR operator+(const VECTOR& v1, const VECTOR& v2)
 /// <param name="s"></param>
 /// <param name="v">вектор</param>
 /// <returns></returns>
-ostream& operator<<(ostream& s, VECTOR& v)
+template <typename T>
+ostream& operator<<(ostream& s, VECTOR<T>& v)
 {
 	int n = v.m_size;
 	for (int i = 0; i < n; i++)
@@ -139,7 +148,8 @@ ostream& operator<<(ostream& s, VECTOR& v)
 /// <param name="s"></param>
 /// <param name="v">вектор</param>
 /// <returns></returns>
-istream& operator>>(istream& s, VECTOR& v)
+template <typename T>
+istream& operator>>(istream& s, VECTOR<T>& v)
 {
 	int n = v.m_size;
 	for (int i = 0; i < n; i++)
@@ -150,7 +160,8 @@ istream& operator>>(istream& s, VECTOR& v)
 /// <summary>
 /// –асставл€ет элементы ветора в обратном пор€дке: последний становитс€ первым, предпоследний вторым и т.д.
 /// </summary>
-void VECTOR::Reverse() {
+template <typename T>
+void VECTOR<T>::Reverse() {
 	int size = m_size;
 	for (int start = 0, end = size - 1; start < end; ++start, --end) 
 	{
@@ -165,7 +176,8 @@ void VECTOR::Reverse() {
 /// <param name="fileName">полное им€ файла</param>
 /// <param name="vect">вектор, создаваемый по данным файла</param>
 /// <returns>true - в случае успешного считывани€ данных, false - в случае ошибки </returns>
-bool VECTOR::readFromFile(const char* fileName, VECTOR& vect)
+template <typename T>
+bool VECTOR<T>::readFromFile(const char* fileName, VECTOR<T>& vect)
 {
 	ifstream fs;
 	fs.open(fileName);
@@ -187,7 +199,8 @@ bool VECTOR::readFromFile(const char* fileName, VECTOR& vect)
 /// </summary>
 /// <param name="fileName">полное им€ текстового файла</param>
 /// <returns>true - в случае успешного считывани€ данных, false - в случае ошибки</returns>
-bool VECTOR::writeToFile(const char* fileName, VECTOR &vect)
+template <typename T>
+bool VECTOR<T>::writeToFile(const char* fileName, VECTOR<T> &vect)
 {
 	ofstream fs;
 	fs.open(fileName);
@@ -206,7 +219,8 @@ bool VECTOR::writeToFile(const char* fileName, VECTOR &vect)
 /// <summary>
 /// ƒеструктор. ќсвобождение пам€ти
 /// </summary>
-VECTOR::~VECTOR()
+template <typename T>
+VECTOR<T>::~VECTOR()
 {
 	if (m_data) delete[] m_data;
 }
