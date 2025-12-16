@@ -302,8 +302,9 @@ void TestLinearSystemSolve(char* appPath, char* path)
         bool res = true; 
         auto start = std::chrono::steady_clock::now();
         //res = Gauss(A, v, x);
-        CompactSchemeSolve(A, v, x);
+        //CompactSchemeSolve(A, v, x);
         //QRDecompositionSolve(A, v, x);
+        LUDecompositionSolve(A, v, x);
         /*MATRIX<double> At(A.Transpose());
         MATRIX<double> a(A.rows(), A.columns());
         a = At * A;
@@ -435,8 +436,8 @@ int main(int argc, char *argv[])
     char path[1024]; // буфер пути файла данных
     //TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
-    //TestLinearSystemSolve(argv[0], path);
+    TestLinearSystemSolve(argv[0], path);
     //TestEigeValuesAndVectors(argv[0], path);
-    TestRotations(argv[0], path);
+    //TestRotations(argv[0], path);
     
 }

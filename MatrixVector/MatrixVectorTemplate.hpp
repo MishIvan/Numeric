@@ -47,6 +47,7 @@ public:
 	template <typename T> friend void QRDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 	template <typename T> friend void LLTDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 	template <typename T> friend void TriangleSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
+	template <typename T> friend void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 
 	~VECTOR();
 };
@@ -73,12 +74,9 @@ VECTOR<T>::VECTOR(int n)
 template <typename T>
 VECTOR<T>::VECTOR(const VECTOR& src)
 {
-	if (this->m_size != src.m_size)
-	{
-		if (!this->m_data) delete[] this->m_data;
-		this->m_data = new T[src.m_size];
-		this->m_size = src.m_size;
-	}
+	if (!this->m_data) delete[] this->m_data;
+	this->m_data = new T[src.m_size];
+	this->m_size = src.m_size;
 	for (int i = 0; i < this->m_size; i++)
 		*(this->m_data + i) = *(src.m_data + i);
 }
@@ -322,12 +320,14 @@ public:
 	template <typename T> friend void QRDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 	template <typename T> friend void LLTDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 	template <typename T> friend void TriangleSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
+	template <typename T> friend void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
 
 	void CopyColumn(VECTOR<T>& v, int j);
 	VECTOR<T> CopyColumn2Vector(int j);
 
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
+	T LUDecomposition(MATRIX& alfa);
 
 	void EigenvaluesAndVectorsKrylov(complex<T>* lambda, complex<T>** vect);
 	void EigenvaluesAndVectorsLeVerrierFaddeev(complex<T>* lambda, complex<T>** vect);
@@ -960,11 +960,11 @@ void QRDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x)
 
 }
 /// <summary>
-/// Решение системы уравнений с применением метода LLT декомпозиции A = LLT
+/// Решение системы линейных алгебраических уравнений с применением метода LLT декомпозиции A = LLT
 /// </summary>
 /// <param name="A">матрица</param>
-/// <param name="b"></param>
-/// <param name="x"></param>
+/// <param name="b">вектор правой части системы</param>
+/// <param name="x">решение системы</param>
 template <typename T>
 void LLTDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x)
 {
@@ -1005,7 +1005,87 @@ void LLTDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x)
 		*(x.m_data + i) = (*(y.m_data + i) - sum) / *(L.m_data + i * n + i);
 	}
 
+}
 
+/// <summary>
+/// Декомпозиция матрицы A = LU
+/// L - нижняя треугольная матрица, на главной диагонали которой расположены единицы
+/// U - верхняя треугольная матрица
+/// </summary>
+/// <param name="alfa">Матрицы L и U, ниже гланой диагонали которой расположены внедиагональные элементы L, 
+/// на главной диагонали и выше расположены элементы матрицы U</param>
+/// <returns>Определитель матрицы</returns>
+template <typename T>
+T MATRIX<T>::LUDecomposition(MATRIX& alfa)
+{
+	T det = 0;
+	if (m_rows != m_columns) return det;
+
+	// декомпозиция матрицы
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)
+		{
+			T val = 0;
+			if (i <= j)
+			{
+				for (int k = 0; k <= i - 1; k++)
+					val += *(alfa.m_data + i * alfa.m_columns + k) * *(alfa.m_data + k * alfa.m_columns + j);
+				*(alfa.m_data + i * alfa.m_columns + j) = *(m_data + i * m_columns + j) - val;
+			}
+			else
+			{
+				for (int k = 0; k <= j - 1; k++)
+					val += *(alfa.m_data + i * alfa.m_columns + k) * *(alfa.m_data + k * alfa.m_columns + j);
+				if (abs(*(alfa.m_data + j * alfa.m_columns + j)) < 1.0e-36) return 0;
+				*(alfa.m_data + i * alfa.m_columns + j) = (*(m_data + i * m_columns + j) - val) / *(alfa.m_data + j * alfa.m_columns + j);
+
+			}
+		}
+	det = 1;
+	for(int i = 0; i < alfa.m_rows; i++)
+		det *= *(alfa.m_data + i * alfa.m_columns + i);
+	return det;
+}
+
+/// <summary>
+/// Решение системы линейных алгебраических уравнений с применением метода LU декомпозиции A = LU
+/// L - нижняя тругольная матрица
+/// U - верхняя треугольная матрица 
+/// </summary>
+/// <param name="A">матрица</param>
+/// <param name="b">вектор правой части системы</param>
+/// <param name="x">решение системы</param>
+
+template <typename T>
+void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x)
+{
+	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+
+	MATRIX<T> alfa(A.m_rows, A.m_columns);
+	int n = A.m_rows;
+
+	T det = A.LUDecomposition(alfa);
+	if (abs(det) > 1.0e-36)
+	{
+		// решение СЛАУ
+		VECTOR<T> y(n);
+		for (int k = 0; k < n; k++)
+		{
+			T val = 0;
+			for (int j = 0; j <= k - 1; j++)
+				val += *(alfa.m_data + k * alfa.m_columns + j) * *(y.m_data + j);
+			*(y.m_data + k) = *(b.m_data + k) - val;
+		}
+		cout << y << endl;
+
+		for (int k = n - 1; k >= 0; k--)
+		{
+			T sum = 0;
+			for (int j = n - 1; j > k; j--)
+				sum += *(alfa.m_data + k * alfa.m_columns + j) * *(x.m_data + j);
+			*(x.m_data + k) = (*(y.m_data + k) - sum) / *(alfa.m_data + k * alfa.m_columns + k);
+		}
+	}
 }
 /// <summary>
 /// Вычисление минора квадаратной матрицы
