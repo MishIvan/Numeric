@@ -1,5 +1,7 @@
 # Шаблоны классов MATRIX<T>("Матрица") и VECTOR<T> ("Вектор"). Их приложение для решения системы линейных алгебраических уравнений, обращения матрицы и поиска собственных значений и собственных векторов матрицы
-Реализация шаблонов классов MATRIX<T>("Матрица") и VECTOR<T> ("Вектор"). Элементы вектора и матрицы хранятся в сплошных массивах m_data. i-ый элемент вектора: _\*(m_data + i)_, элементы матрицы $A_{ij}$ распологаются 
+Реализация шаблонов классов _MATRIX<T>_("Матрица") и _VECTOR<T>_ ("Вектор")в проекте _MatrixVector_ в файле _MatrixVectorTemplate.hpp_. Для того, чтобы воспользоваться функциями классов в своём проекте, следует вставить строку в файл своего исходного кода _#include "MatrixVectorTemplate.hpp"_.
+
+Элементы вектора и матрицы хранятся в сплошных массивах m_data. i-ый элемент вектора: _\*(m_data + i)_, элементы матрицы $A_{ij}$ распологаются 
 в массиве построчно: _\*(m_data + i\*m_columns+j)_, где _m_columns_ - число столбцов матрицы. Шаблон класса содержит перегрузку операторов _=, \*, +, -, <<, >>, /=_:
 ```
 	template <typename T>friend MATRIX<T> operator*(const MATRIX<T>& , const MATRIX<T>& );
@@ -28,8 +30,15 @@ template <typename T> friend istream& operator>>(istream& s, VECTOR<T>& );
 С помощью классов MATRIX<T> и VECTOR<T> реализовано решение СЛАУ несколькими методами: методом Гаусса, методом LU декомпозиции, LL<sup>T</sup> для симметричных положительно определённых матриц,
 QR декомпозиции и методом компактной схемы исключения [^1]\ в виде дружественных функций классов MATRIX<T> и VECTOR<T>:
 ```
+// Решение СЛАУ Ax = b
+// A - матрица коэффициентов системы уравнений
+// b - вектор правой части системы уравнений
+// x - вуктор решений системы уравнений
+// Матрица СЛАУ должна быть квадратной, а число элементов в векторе правой части и векторе решения
+// должно совпадать с числом строк матрицы
+
 // Решение СЛАУ методом Гаусса
-template <typename T> friend bool Gauss(const MATRIX<T>& a, const VECTOR<T>& b, VECTOR<T>& x);
+template <typename T> friend bool Gauss(const MATRIX<T>& A, const VECTOR<T>& b, VECTOR<T>& x);
 
 // Решение СЛАУ компактной схемой исключения
 template <typename T> friend void CompactSchemeSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x);
@@ -52,6 +61,7 @@ template <typename T> friend void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& 
 	MATRIX Invert(); // Решением система AX = I, I - единичная матрица, X - обратная матрица
 
 ```
+# Поиск собственных значений матрицы
 ## Примеры
 ### Решение СЛАУ
 ```
@@ -68,6 +78,28 @@ template <typename T> friend void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& 
 6
 19.0 77.0 66.0 11.0 22.0 234.0
 */
+
+/// <summary>
+/// Получить полный путь файла в папке, из которой запускается исполняемый файл программы
+/// </summary>
+/// <param name="fullExePath">полный путь запуска программы</param>
+/// <param name="dataFileName">имя файла данных в каталоге, где расположен исполняемый файл</param>
+/// <param name="fullFileName">имя файла данных в каталоге, где расположен исполняемый файл</param>
+/// <returns></returns>
+void GetFullPathInWD(char* fullExePath, const char* dataFileName, char* fullFileName)
+{
+    strcpy_s(fullFileName, 1024, fullExePath);
+    std::string s1 = fullFileName;
+    int k = s1.find_last_of('\\');
+    if (k == std::string::npos)
+        strcpy_s(fullFileName, 1024, dataFileName);
+    else
+    {
+        s1.replace(k + 1, s1.size() - 1, dataFileName);
+        strcpy_s(fullFileName, 1024, s1.data());
+    }
+}
+
     GetFullPathInWD(appPath, "MatrixVectMult_in.txt", path);
     // считывание данных
     ifstream fs;
