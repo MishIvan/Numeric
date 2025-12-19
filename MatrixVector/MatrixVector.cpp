@@ -3,6 +3,7 @@
 #include <ctime>
 #include <chrono>
 #include "MatrixVectorTemplate.hpp"
+const char*  methods[4] { "Метод Гаусса","LU декомпозиция","Компактная схема исключения","QR декомпозиция" };
 
 /// <summary>
 /// Получить полный путь файла в папке, из которой запускается исполняемый файл программы
@@ -39,19 +40,19 @@ void TestMatrixMultiplication(char *appPath, char * path)
         fs >> m >> n;
         MATRIX<double> A(m, n);
         fs >> A;
-        cout << "Матрица A" << endl;
-        cout << A;
+        std::cout << "Матрица A" << endl;
+        std::cout << A;
 
         fs >> m >> n;
         MATRIX<double> B(m, n);
         fs >> B;
-        cout << endl << "Матрица B" << endl;
-        cout << B;
+        std::cout << endl << "Матрица B" << endl;
+        std::cout << B;
 
         MATRIX<double> C(A.rows(), B.columns());
         C = A * B;
-        cout << endl << "Матрица C = A*B" << endl;
-        cout << C;
+        std::cout << endl << "Матрица C = A*B" << endl;
+        std::cout << C;
 
         fs.close();
     }
@@ -72,19 +73,19 @@ void TestMatrixVectorMultiplication(char* appPath, char* path)
         fs >> m >> n;
         MATRIX<double> A(m, n);
         fs >> A;
-        cout << "Матрица A" << endl;
-        cout << A;
+        std::cout << "Матрица A" << endl;
+        std::cout << A;
 
         fs >> n;
         VECTOR<double> v(n);
         fs >> v;
-        cout << endl << "Вектор v" << endl;
-        cout << v;
+        std::cout << endl << "Вектор v" << endl;
+        std::cout << v;
 
         VECTOR<double> vp(A.rows());
         vp = A* v;
-        cout << endl << "Вектор  vp= A*v" << endl;
-        cout << vp;
+        std::cout << endl << "Вектор  vp= A*v" << endl;
+        std::cout << vp;
 
         fs.close();
     }
@@ -103,24 +104,24 @@ void TestMatrixNVector(char*appPath, char*  path)
     bool success = VECTOR<double>::readFromFile(path, v);
     if (success)
     {
-        cout << "Вектор размерностью " << v.size() << " считан из файла" << endl;
-        cout << v << endl;
+        std::cout << "Вектор размерностью " << v.size() << " считан из файла" << endl;
+        std::cout << v << endl;
     }
     else
-        cout << "Неудачная попытка чтения вектора из файла" << endl;
+        std::cout << "Неудачная попытка чтения вектора из файла" << endl;
 
     /// Вектор. Считывание данных с консоли и запись в файл
     VECTOR<double> v_in(5);
-    cout << "Введите вектор размерностью 5 с консоли" << endl;
+    std::cout << "Введите вектор размерностью 5 с консоли" << endl;
     cin >> v_in;
-    cout << "Вектор разменостью " << v_in.size() << endl;
-    cout << v_in << endl;
+    std::cout << "Вектор разменостью " << v_in.size() << endl;
+    std::cout << v_in << endl;
     GetFullPathInWD(appPath, "Vector_out.txt", path);
     success = VECTOR<double>::writeToFile(path, v_in);
     if (success)
-        cout << "Вектор, введённый с консоли, записан в файл" << endl;
+        std::cout << "Вектор, введённый с консоли, записан в файл" << endl;
     else
-        cout << "Неудачная попытка записи вектора, введённого с консоли" << endl;
+        std::cout << "Неудачная попытка записи вектора, введённого с консоли" << endl;
 
 
     /// Матрица. Считывание из файла
@@ -129,24 +130,24 @@ void TestMatrixNVector(char*appPath, char*  path)
     success = MATRIX<double>::readFromFile(path, matr);
     if (success)
     {
-        cout << "Считаны данные матрицы " << matr.rows() << " x " << matr.columns() << endl;
-        cout << matr << endl;
+        std::cout << "Считаны данные матрицы " << matr.rows() << " x " << matr.columns() << endl;
+        std::cout << matr << endl;
     }
     else
-        cout << "Неудачная попытка считывания данных матрицы" << endl;
+        std::cout << "Неудачная попытка считывания данных матрицы" << endl;
 
     ///  Матрица. Ввод с консоли и запись в файл
     MATRIX<double> matr_in(3, 5);
-    cout << "Введите матрицу 3 х 5 с консоли" << endl;
+    std::cout << "Введите матрицу 3 х 5 с консоли" << endl;
     cin >> matr_in;
     //cout << "Введена матрица" << endl;
     //cout << matr_in << endl;
     GetFullPathInWD(appPath, "Matrix_out.txt", path);
     success = MATRIX<double>::writeToFile(path, matr_in);
     if (success)
-        cout << "Матрица, введённая с консоли, записана в файл" << endl;
+        std::cout << "Матрица, введённая с консоли, записана в файл" << endl;
     else
-        cout << "Неудачная попытка записи матрицы, введённой с консоли" << endl;
+        std::cout << "Неудачная попытка записи матрицы, введённой с консоли" << endl;
 
     /// Матрица. Умножение матриц
     TestMatrixMultiplication(appPath, path);
@@ -163,7 +164,7 @@ template <typename T>
 void TestQRDecomposition(MATRIX<T>& A)
 {
     // 
-    MATRIX Q(A.rows(), A.columns()), R(A.rows(), A.columns());
+    MATRIX<T> Q(A.rows(), A.columns()), R(A.rows(), A.columns());
     if (!A.QRDecomposition(Q, R))
     {
         cout << "Матрица R вырождена" << endl;
@@ -195,7 +196,7 @@ void TestQRDecomposition(MATRIX<T>& A)
 template <typename T>
 void TestCholeskyDecomposuition(MATRIX<T>& A)
 {
-    MATRIX L(A.rows(), A.columns()), Anorm(A.rows(), A.columns());
+    MATRIX<T> L(A.rows(), A.columns()), Anorm(A.rows(), A.columns());
     Anorm = A.Transpose() * A;
 
     cout << endl << "Matrix A^t*A" << endl;
@@ -229,8 +230,8 @@ void TestMatrixReverse()
  
     if (size < 20)
     {
-        cout << endl << "Matrix A" << endl;
-        cout << A << endl;
+        std::cout << endl << "Matrix A" << endl;
+        std::cout << A << endl;
     }
     
     //clock_t  time_end;
@@ -243,12 +244,12 @@ void TestMatrixReverse()
     //double secs = (double)time_end / CLOCKS_PER_SEC;
     auto duration = end - start;
     std::chrono::duration<double> secs = duration;
-    cout << "Время решения " << secs.count() << " сек" << endl;
+    std::cout << "Время решения " << secs.count() << " сек" << endl;
 
     if (size < 20)
     {
-        cout << endl << "Matrix A(-1)" << endl;
-        cout << A1 << endl;
+        std::cout << endl << "Matrix A(-1)" << endl;
+        std::cout << A1 << endl;
     }
 
     MATRIX<double> E(A.rows(), A.columns());
@@ -266,11 +267,11 @@ void TestMatrixReverse()
    
     if (size < 20)
     {
-        cout << endl << "Matrix A(-1)*A" << endl;
-        cout << E << endl;
+        std::cout << endl << "Matrix A(-1)*A" << endl;
+        std::cout << E << endl;
     }
 
-    cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
+    std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
 
 }
 
@@ -286,14 +287,14 @@ void TestLinearSystemSolve(char* appPath, char* path)
         fs >> m >> n;
         MATRIX<double> A(m, n);
         fs >> A;
-        cout << "Матрица СЛАУ A" << endl;
-        cout << A;
+        std::cout << "Матрица СЛАУ A" << endl;
+        std::cout << A;
 
         fs >> n;
         VECTOR<double> v(n);
         fs >> v;
-        cout << endl << "Вектор правой части СЛАУ v" << endl;
-        cout << v << endl;
+        std::cout << endl << "Вектор правой части СЛАУ v" << endl;
+        std::cout << v << endl;
 
         fs.close();
 
@@ -317,22 +318,74 @@ void TestLinearSystemSolve(char* appPath, char* path)
 
         if ((det != 0.0 || !isnan(det)) && res)
         {
-            cout << "Время решения " << secs.count() << " сек" << endl;
-            cout << endl << "Вектор  решения CЛАУ A*x = v" << endl;
-            cout << x;
+            std::cout << "Время решения " << secs.count() << " сек" << endl;
+            std::cout << endl << "Вектор  решения CЛАУ A*x = v" << endl;
+            std::cout << x;
 
-            cout << endl << "Определитель марицы A равен " << det << endl;
+            std::cout << endl << "Определитель марицы A равен " << det << endl;
 
             //VECTOR vn(x.size());
             // vn = A*x - v;
             double norm = (A * x - v).norm();
-            cout << endl << "Норма невязки " << norm << endl;
+            std::cout << endl << "Норма невязки " << norm << endl;
 
         }
 
         
     }
 }
+// Тестирование решения СЛАУ различного порядка
+void TestLinearSystemSolve2()
+{
+        int  n = 100;
+        srand(10);
+        // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
+        MATRIX<double> A(n, n);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+                A(i, j) = randomDouble<double>();
+        
+        double det = A.Determinant();
+        if (abs(det) < 1.0e-36)
+        {
+            cout << "Матрица СЛАУ вырождена" << endl;
+            return;
+        }
+
+        VECTOR<double> v(n), x(n);
+        for (int i = 0; i < n; i++)
+            v[i] = randomDouble<double>();
+
+        cout << "Метод" << '\t' << "Время, сек" << '\t' << "Норма невязки" << endl;
+        
+        for (int i = 0; i < 4; i++)
+        {
+            auto start = std::chrono::steady_clock::now();
+            switch (i)
+            {
+                case 0: 
+                    Gauss<double>(A, v, x); break;
+                case 1:
+                    LUDecompositionSolve<double>(A, v, x); break;
+                case 2:
+                    CompactSchemeSolve<double>(A, v, x); break;
+                case 3:
+                    QRDecompositionSolve<double>(A, v, x); break;
+            }
+
+            auto end = std::chrono::steady_clock::now();
+            auto duration = end - start;
+            std::chrono::duration<double> secs = duration;
+
+            double stime = secs.count();
+            double norm = (A * x - v).norm();
+
+            cout << methods[i] << '\t' << stime << '\t' << norm << endl;
+
+        }
+    
+}
+
 
 void TestEigeValuesAndVectors(char* appPath, char* path)
 {
@@ -436,7 +489,8 @@ int main(int argc, char *argv[])
     char path[1024]; // буфер пути файла данных
     //TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
-    TestLinearSystemSolve(argv[0], path);
+    //TestLinearSystemSolve(argv[0], path);
+    TestLinearSystemSolve2();
     //TestEigeValuesAndVectors(argv[0], path);
     //TestRotations(argv[0], path);
     

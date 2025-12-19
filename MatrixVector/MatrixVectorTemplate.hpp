@@ -1076,7 +1076,6 @@ void LUDecompositionSolve(MATRIX<T>& A, VECTOR<T>& b, VECTOR<T>& x)
 				val += *(alfa.m_data + k * alfa.m_columns + j) * *(y.m_data + j);
 			*(y.m_data + k) = *(b.m_data + k) - val;
 		}
-		cout << y << endl;
 
 		for (int k = n - 1; k >= 0; k--)
 		{
