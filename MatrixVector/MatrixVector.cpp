@@ -337,14 +337,14 @@ void TestLinearSystemSolve(char* appPath, char* path)
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-        int  n = 100;
+        int  n = 500;
         srand(10);
         // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
         MATRIX<double> A(n, n);
         for (int i = 0; i < n; i++)
             for (int j = 0; j < n; j++)
-                A(i, j) = randomDouble<double>();
-        
+                A(i, j) = rand_range(-1.0e3, 1.0e3);
+
         double det = A.Determinant();
         if (abs(det) < 1.0e-36)
         {
@@ -354,7 +354,7 @@ void TestLinearSystemSolve2()
 
         VECTOR<double> v(n), x(n);
         for (int i = 0; i < n; i++)
-            v[i] = randomDouble<double>();
+            v[i] = rand_range<double>(-10.0, 200);
 
         cout << "Метод" << '\t' << "Время, сек" << '\t' << "Норма невязки" << endl;
         
@@ -377,11 +377,7 @@ void TestLinearSystemSolve2()
             auto duration = end - start;
             std::chrono::duration<double> secs = duration;
 
-            double stime = secs.count();
-            double norm = (A * x - v).norm();
-
-            cout << methods[i] << '\t' << stime << '\t' << norm << endl;
-
+            cout << methods[i] << '\t' << secs.count() << '\t' << (A * x - v).norm() << endl;
         }
     
 }

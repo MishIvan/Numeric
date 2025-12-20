@@ -1283,6 +1283,17 @@ complex<T> PolyfunDerivative(const complex<T>& z, VECTOR<T>& koeff)
 	poly += (T)n * pow(z, (T)(n - 1));
 	return poly;
 }
+/// <summary>
+/// Генарация вещественных случайных чисел
+/// </summary>
+/// <typeparam name="T">тип</typeparam>
+/// <param name="min">минимальное значение и нтервала</param>
+/// <param name="max">максимальное значение интервала</param>
+/// <returns>случайное число</returns>
+template <typename T>
+T rand_range(T min, T max) {
+	return min + (max - min) * std::rand() / (RAND_MAX + 1);
+}
 
 template <typename T>
 inline T randomDouble()
@@ -1604,6 +1615,8 @@ void MATRIX<T>::Rotate(T* lambda, T** vect)
 
 		iter++;
 	}
+
+	if (vect == nullptr) return;
 
 	for (int i = 0; i < n; i++)
 	{
