@@ -218,60 +218,62 @@ void TestCholeskyDecomposuition(MATRIX<T>& A)
     cout << rt << endl;
 
 }
-
+const char* header_rev[2] = { "Решение системы AX = E", "LU разложение" };
 void TestMatrixReverse()
 {
-    int size = 100;
+    int size = 2000;
     MATRIX<double> A(size, size), A1(size, size);
     srand(10);
     for (int i = 0; i < size; i++)
         for (int j = 0; j < size; j++)
-            A(i, j) = (double)rand() / (double)rand();
- 
+            A(i, j) = rand_range(-1000, 1000);
+    
     if (size < 20)
     {
         std::cout << endl << "Matrix A" << endl;
         std::cout << A << endl;
     }
-    
-    //clock_t  time_end;
-    auto start = std::chrono::steady_clock::now();
-    //A1 = A.Reverse(); // вычислением алгебраических дополнений
-    //A1 = A.Invert();    // решением системы
-    A1 = A.InvertFaddev();
-    auto end = std::chrono::steady_clock::now();
-    //time_end = clock();
-    //double secs = (double)time_end / CLOCKS_PER_SEC;
-    auto duration = end - start;
-    std::chrono::duration<double> secs = duration;
-    std::cout << "Время решения " << secs.count() << " сек" << endl;
 
-    if (size < 20)
+
+    for (int istep = 0; istep < 2; istep++)
     {
-        std::cout << endl << "Matrix A(-1)" << endl;
-        std::cout << A1 << endl;
-    }
+        cout << " *** " << header_rev[istep] << "***" << endl;
+        auto start = std::chrono::steady_clock::now();
+        //A1 = A.Reverse(); // вычислением алгебраических дополнений
+        A1 = istep == 0 ? A.Invert() : A.InvertLT();  
+        auto end = std::chrono::steady_clock::now();
+        auto duration = end - start;
+        std::chrono::duration<double> secs = duration;
+        std::cout << "Время решения " << secs.count() << " сек" << endl;
 
-    MATRIX<double> E(A.rows(), A.columns());
-    E = A1 * A;
-     
-    // максимальный внедиагональный элемент по модулю матрицы E
-    int n = E.rows();
-    int m = E.columns();
-    double emax = 0.0;
-    for(int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
+        if (size < 20)
         {
-            if (i != j && fabs(E(i, j)) > emax) emax = fabs(E(i, j));
+            std::cout << endl << "Matrix A(-1)" << endl;
+            std::cout << A1 << endl;
         }
-   
-    if (size < 20)
-    {
-        std::cout << endl << "Matrix A(-1)*A" << endl;
-        std::cout << E << endl;
-    }
 
-    std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
+        MATRIX<double> E(A.rows(), A.columns());
+        E = A1 * A;
+
+        // максимальный внедиагональный элемент по модулю матрицы E
+        int n = E.rows();
+        int m = E.columns();
+        double emax = 0.0;
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++)
+            {
+                double val = fabs(E(i, j));
+                if (i != j && val > emax) emax = val;
+            }
+
+        if (size < 20)
+        {
+            std::cout << endl << "Matrix A(-1)*A" << endl;
+            std::cout << E << endl;
+        }
+
+        std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
+    }
 
 }
 
@@ -483,10 +485,10 @@ int main(int argc, char *argv[])
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
     char path[1024]; // буфер пути файла данных
-    //TestMatrixReverse();
+    TestMatrixReverse();
     //TestMatrixNVector(argv[0], path);
     //TestLinearSystemSolve(argv[0], path);
-    TestLinearSystemSolve2();
+    //TestLinearSystemSolve2();
     //TestEigeValuesAndVectors(argv[0], path);
     //TestRotations(argv[0], path);
     

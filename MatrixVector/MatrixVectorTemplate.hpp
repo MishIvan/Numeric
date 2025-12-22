@@ -307,6 +307,7 @@ public:
 	MATRIX Reverse();
 	MATRIX Invert();
 	MATRIX InvertFaddev();
+	MATRIX InvertLT();
 	T Determinant();
 	T Sp();
 	T Minor(int i, int j);
@@ -1203,6 +1204,47 @@ MATRIX<T> MATRIX<T>::Invert()
 		A.CopyColumn(x, i);
 	}
 	return A;
+}
+
+template <typename T>
+MATRIX <T> MATRIX <T>::InvertLT()
+{
+	MATRIX<T> D(m_rows, m_columns), alpha(m_rows, m_columns);
+	if (m_rows != m_columns) // матрица должна быть квадратной
+		return D;
+	T det = LUDecomposition(alpha); // декомпозиция A = LU
+	if (det == 0)
+		return D;
+	// формирование элементов обратной матрицы
+	int n = m_rows;
+	for (int i = n-1; i >= 0; i--)
+		for(int j = n-1;j >= 0; j--)
+		{
+			T sum = 0;
+			if (i < j)
+			{
+				for (int k = i + 1; k < n; k++)
+					sum -= *(alpha.m_data + i * alpha.m_columns + k) * *(D.m_data + k * D.m_columns + j);
+				*(D.m_data + i * D.m_columns + j) =  sum / *(alpha.m_data + i * alpha.m_columns + i);
+
+			}
+			else if (i == j)
+			{
+				for (int k = j + 1; k < n; k++)
+					sum += *(alpha.m_data + j * alpha.m_columns + k) * *(D.m_data + k * D.m_columns + j);
+				*(D.m_data + j * D.m_columns + i) = (1-sum) / *(alpha.m_data + j * alpha.m_columns + j);
+
+			}
+			else
+			{
+				for (int k = j + 1; k < n; k++)
+					sum -= *(alpha.m_data + k * alpha.m_columns + j) * *(D.m_data + i * D.m_columns + k);
+				*(D.m_data + i * D.m_columns + j) = sum;
+
+			}
+		}
+
+	return D;
 }
 
 /// <summary>
