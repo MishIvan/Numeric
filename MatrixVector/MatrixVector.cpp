@@ -221,12 +221,15 @@ void TestCholeskyDecomposuition(MATRIX<T>& A)
 const char* header_rev[2] = { "Решение системы AX = E", "LU разложение" };
 void TestMatrixReverse()
 {
-    int size = 2000;
-    MATRIX<double> A(size, size), A1(size, size);
+    int size = 200;
+    MATRIX<double> A(size, size), A1(size, size), E(size, size);
     srand(10);
     for (int i = 0; i < size; i++)
+    {
+        E(i, i) = 1;
         for (int j = 0; j < size; j++)
             A(i, j) = rand_range(-1000, 1000);
+    }
     
     if (size < 20)
     {
@@ -234,13 +237,21 @@ void TestMatrixReverse()
         std::cout << A << endl;
     }
 
-
     for (int istep = 0; istep < 2; istep++)
     {
-        cout << " *** " << header_rev[istep] << "***" << endl;
+        cout << "*** " << header_rev[istep] << " ***" << endl;
         auto start = std::chrono::steady_clock::now();
         //A1 = A.Reverse(); // вычислением алгебраических дополнений
-        A1 = istep == 0 ? A.Invert() : A.InvertLT();  
+        switch (istep)
+        {
+            case 0:
+                A1 = A.Invert();
+                break;
+            case 1:
+                A1 = A.InvertLT();
+                break;
+        }
+
         auto end = std::chrono::steady_clock::now();
         auto duration = end - start;
         std::chrono::duration<double> secs = duration;
@@ -252,27 +263,27 @@ void TestMatrixReverse()
             std::cout << A1 << endl;
         }
 
-        MATRIX<double> E(A.rows(), A.columns());
-        E = A1 * A;
+        MATRIX<double> I(A1 * A);
 
         // максимальный внедиагональный элемент по модулю матрицы E
-        int n = E.rows();
-        int m = E.columns();
+        int n = I.rows();
+        int m = I.columns();
         double emax = 0.0;
         for (int i = 0; i < n; i++)
             for (int j = 0; j < m; j++)
             {
-                double val = fabs(E(i, j));
+                double val = fabs(I(i, j));
                 if (i != j && val > emax) emax = val;
             }
 
         if (size < 20)
         {
             std::cout << endl << "Matrix A(-1)*A" << endl;
-            std::cout << E << endl;
+            std::cout << I << endl;
         }
 
         std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
+        std::cout << "Кубическая норма: " << (E - A * A1).normI() << endl;
     }
 
 }

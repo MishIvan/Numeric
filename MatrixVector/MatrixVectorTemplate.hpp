@@ -313,6 +313,8 @@ public:
 	T Minor(int i, int j);
 	bool IsSymmetric();
 
+	T normI(); // первая норма
+
 	static bool readFromFile(const char* fileName, MATRIX& matr);
 	static bool writeToFile(const char* fileName, MATRIX& matr);
 
@@ -549,6 +551,24 @@ T MATRIX<T>::Sp()
 		for (int j = 0; j < m_columns; j++)
 			if (i == j) val += *(m_data + i * m_columns + j);
 	return val;
+}
+
+/// <summary>
+/// Вычисляет перву норму матрицы
+/// </summary>
+/// <returns>значение первой нормы матрицы</returns>
+template <typename T>
+T MATRIX<T>::normI()
+{
+	T norm = 0;
+	for (int i = 0; i < m_rows; i++)
+	{
+		T sum = 0;
+		for (int j = 0; j < m_columns; j++)
+			sum += abs(*(m_data + i * m_columns + j));
+		if (sum > norm) norm = sum;
+	}
+	return norm;
 }
 
 /// <summary>
@@ -1203,6 +1223,24 @@ MATRIX<T> MATRIX<T>::Invert()
 		TriangleSolve(alpha, e, x);
 		A.CopyColumn(x, i);
 	}
+
+	// итерационное уточнение обратной матрицы
+	if (m_rows >= 100)
+	{
+		MATRIX E(m_rows, m_columns);
+		for (int i = 0; i < m_rows; i++)
+			*(E.m_data + i * m_columns + i) = 1;
+		int iter = 0;
+		double norm;
+		do
+		{
+			MATRIX<double> R(E - *this * A);
+			A = A * (E + R);
+			norm = R.normI();
+			if (++iter > MAX_ITER_NUMBER) break;
+		} while (norm < 1.0e-17);
+	}
+
 	return A;
 }
 
@@ -1243,6 +1281,22 @@ MATRIX <T> MATRIX <T>::InvertLT()
 
 			}
 		}
+	// итерационное уточнение обратной матрицы
+	if (m_rows >= 100)
+	{
+		MATRIX E(m_rows, m_columns);
+		for (int i = 0; i < m_rows; i++)
+			*(E.m_data + i * m_columns + i) = 1;
+		int iter = 0;
+		double norm;
+		do
+		{
+			MATRIX<double> R(E - *this * D);
+			D = D * (E + R);
+			norm = R.normI();
+			if (++iter > MAX_ITER_NUMBER) break;
+		} while (norm < 1.0e-17);
+	}
 
 	return D;
 }
