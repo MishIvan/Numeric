@@ -221,7 +221,7 @@ void TestCholeskyDecomposuition(MATRIX<T>& A)
 const char* header_rev[2] = { "Решение системы AX = E", "LU разложение" };
 void TestMatrixReverse()
 {
-    int size = 2000;
+    int size = 500;
     MATRIX<double> A(size, size), A1(size, size), E(size, size);
     srand(10);
     for (int i = 0; i < size; i++)

@@ -1195,7 +1195,8 @@ MATRIX<T> MATRIX<T>::Reverse()
 	return A;
 }
 /// <summary>
-/// Обращение марицы при пощи решения систем уравнений A*X = E, колонки матрицы X - столбцы обратной матрицы
+/// Обращение марицы при пощи решения систем уравнений A*X = E, столбцы матрицы X - столбцы обратной к A матрицы
+/// E - единичная матрица
 /// </summary>
 /// <returns>обратную матрицу</returns>
 template <typename T>
@@ -1235,7 +1236,7 @@ MATRIX<T> MATRIX<T>::Invert()
 		double norm;
 		do
 		{
-			MATRIX<double> R(E - *this * A);
+			MATRIX R(E - *this * A);
 			A = A * (E + R);
 			norm = R.normI();
 			if (++iter > MAX_ITER_NUMBER) break;
@@ -1245,10 +1246,14 @@ MATRIX<T> MATRIX<T>::Invert()
 	return A;
 }
 
+/// <summary>
+/// Обращение матриы с пощью LU разложения
+/// </summary>
+/// <returns>обратную матрицу</returns>
 template <typename T>
 MATRIX <T> MATRIX <T>::InvertLT()
 {
-	MATRIX<T> D(m_rows, m_columns), alpha(m_rows, m_columns);
+	MATRIX D(m_rows, m_columns), alpha(m_rows, m_columns);
 	if (m_rows != m_columns) // матрица должна быть квадратной
 		return D;
 	T det = LUDecomposition(alpha); // декомпозиция A = LU
@@ -1292,7 +1297,7 @@ MATRIX <T> MATRIX <T>::InvertLT()
 		double norm;
 		do
 		{
-			MATRIX<double> R(E - *this * D);
+			MATRIX R(E - *this * D);
 			D = D * (E + R);
 			norm = R.normI();
 			if (++iter > MAX_ITER_NUMBER) break;
