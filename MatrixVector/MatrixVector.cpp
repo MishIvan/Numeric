@@ -221,7 +221,7 @@ void TestCholeskyDecomposuition(MATRIX<T>& A)
 const char* header_rev[2] = { "Решение системы AX = E", "LU разложение" };
 void TestMatrixReverse()
 {
-    int size = 200;
+    int size = 2000;
     MATRIX<double> A(size, size), A1(size, size), E(size, size);
     srand(10);
     for (int i = 0; i < size; i++)
@@ -266,7 +266,7 @@ void TestMatrixReverse()
         MATRIX<double> I(A1 * A);
 
         // максимальный внедиагональный элемент по модулю матрицы E
-        int n = I.rows();
+        /*int n = I.rows();
         int m = I.columns();
         double emax = 0.0;
         for (int i = 0; i < n; i++)
@@ -274,7 +274,7 @@ void TestMatrixReverse()
             {
                 double val = fabs(I(i, j));
                 if (i != j && val > emax) emax = val;
-            }
+            } */
 
         if (size < 20)
         {
@@ -282,8 +282,8 @@ void TestMatrixReverse()
             std::cout << I << endl;
         }
 
-        std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
-        std::cout << "Кубическая норма: " << (E - A * A1).normI() << endl;
+        //std::cout << "Максимальный по модулю внедиагональный элемент A(-1)*A: " << emax << endl;
+        std::cout << "Кубическая норма: " << (E - I).normI() << endl;
     }
 
 }

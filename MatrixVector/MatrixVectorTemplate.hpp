@@ -8,6 +8,7 @@
 
 #define EPS 1.0e-12
 #define MAX_ITER_NUMBER 30000
+#define MIN_SIZE_INVERSION 200
 
 
 using namespace std;
@@ -1225,7 +1226,7 @@ MATRIX<T> MATRIX<T>::Invert()
 	}
 
 	// итерационное уточнение обратной матрицы
-	if (m_rows >= 100)
+	if (m_rows >= MIN_SIZE_INVERSION)
 	{
 		MATRIX E(m_rows, m_columns);
 		for (int i = 0; i < m_rows; i++)
@@ -1282,7 +1283,7 @@ MATRIX <T> MATRIX <T>::InvertLT()
 			}
 		}
 	// итерационное уточнение обратной матрицы
-	if (m_rows >= 100)
+	if (m_rows >= MIN_SIZE_INVERSION)
 	{
 		MATRIX E(m_rows, m_columns);
 		for (int i = 0; i < m_rows; i++)
