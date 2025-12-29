@@ -555,7 +555,7 @@ T MATRIX<T>::Sp()
 }
 
 /// <summary>
-/// Вычисляет перву норму матрицы
+/// Вычисляет первую норму матрицы
 /// </summary>
 /// <returns>значение первой нормы матрицы</returns>
 template <typename T>
@@ -1256,7 +1256,7 @@ MATRIX <T> MATRIX <T>::InvertLT()
 	if (m_rows != m_columns) // матрица должна быть квадратной
 		return D;
 	T det = LUDecomposition(alpha); // декомпозиция A = LU
-	if (det == 0)
+	if (abs(det) < 1.0e-36)
 		return D;
 	// формирование элементов обратной матрицы
 	int n = m_rows;
@@ -1286,22 +1286,22 @@ MATRIX <T> MATRIX <T>::InvertLT()
 
 			}
 		}
-	// итерационное уточнение обратной матрицы
-	if (m_rows >= MIN_SIZE_INVERSION)
-	{
-		MATRIX E(m_rows, m_columns);
-		for (int i = 0; i < m_rows; i++)
-			*(E.m_data + i * m_columns + i) = 1;
-		int iter = 0;
-		T norm;
-		do
+		// итерационное уточнение обратной матрицы
+		if (m_rows >= MIN_SIZE_INVERSION)
 		{
-			MATRIX R(E - *this * D);
-			D = D * (E + R);
-			norm = R.normI();
-			if (++iter > MAX_ITER_NUMBER) break;
-		} while (norm < 1.0e-17);
-	}
+			MATRIX E(m_rows, m_columns);
+			for (int i = 0; i < m_rows; i++)
+				*(E.m_data + i * m_columns + i) = 1;
+			int iter = 0;
+			T norm;
+			do
+			{
+				MATRIX R(E - *this * D);
+				D = D * (E + R);
+				norm = R.normI();
+				if (++iter > MAX_ITER_NUMBER) break;
+			} while (norm < 1.0e-17);
+		}
 
 	return D;
 }
