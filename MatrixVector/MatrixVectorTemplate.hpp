@@ -1158,7 +1158,6 @@ MATRIX<T> MATRIX<T>::Reverse()
 	MATRIX A(m_rows, m_columns);
 	if (m_rows != m_columns)
 	{
-		throw "Для вычисления обратной матрицы исходная матрица должна быть квадратной";
 		return A;
 	}
 	T det = Determinant();
@@ -1233,7 +1232,7 @@ MATRIX<T> MATRIX<T>::Invert()
 		for (int i = 0; i < m_rows; i++)
 			*(E.m_data + i * m_columns + i) = 1;
 		int iter = 0;
-		double norm;
+		T norm;
 		do
 		{
 			MATRIX R(E - *this * A);
@@ -1294,7 +1293,7 @@ MATRIX <T> MATRIX <T>::InvertLT()
 		for (int i = 0; i < m_rows; i++)
 			*(E.m_data + i * m_columns + i) = 1;
 		int iter = 0;
-		double norm;
+		T norm;
 		do
 		{
 			MATRIX R(E - *this * D);
