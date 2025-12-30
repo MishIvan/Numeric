@@ -1216,14 +1216,38 @@ MATRIX<T> MATRIX<T>::Invert()
 		throw "Это вырожденная матрица";
 		return A;
 	}
+	
+	auto TriangleSolveE = [&alpha,&A](int row_begin, int row_end, int rows_total)
+		{
+			VECTOR<T> x(rows_total);
+			for (int i = row_begin; i <= row_end; i++)
+			{
+				VECTOR<T> e(rows_total);
+				e[i] = 1;
+				TriangleSolve(alpha, e, x);
+				A.CopyColumn(x, i);
+			}
 
-	for (int i = 0; i < m_rows; i++)
+		};
+	
+	if (m_rows >= 1000) // решение систем в двух потоках
 	{
-		VECTOR<T> e(m_rows), x(m_rows);
-		e[i] = 1;
-		TriangleSolve(alpha, e, x);
-		A.CopyColumn(x, i);
+
+		thread t1(TriangleSolveE, 0, m_rows / 2, m_rows);
+		thread t2(TriangleSolveE, m_rows / 2 +1, m_rows - 1, m_rows);
+
+		t1.join();
+		t2.join();
 	}
+	else // решение системы в главном потоке 
+		TriangleSolveE(0, m_rows - 1, m_rows);
+	//for (int i = 0; i < m_rows; i++)
+	//{
+	//	VECTOR<T> e(m_rows), x(m_rows);
+	//	e[i] = 1;
+	//	TriangleSolve(alpha, e, x);
+	//	A.CopyColumn(x, i);
+	//}
 
 	// итерационное уточнение обратной матрицы
 	if (m_rows >= MIN_SIZE_INVERSION)
