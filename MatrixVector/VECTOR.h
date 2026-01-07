@@ -33,13 +33,6 @@ public:
 	static bool writeToFile(const char* fileName, VECTOR& vect);
 	friend VECTOR operator*(const MATRIX& matr, const VECTOR& v);
 
-	friend bool Gauss(const MATRIX& a, const VECTOR& b, VECTOR& x);
-	friend void CompactSchemeSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-
 	~VECTOR();
 };
 

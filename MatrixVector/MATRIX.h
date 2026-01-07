@@ -16,8 +16,7 @@ protected:
 	const int MIN_SIZE_FOR_THREAD = 100; // минимальный размер матрицы, начиная с которого запускаются потоки для вычисления обратной матрицы
 	int m_rows; //  число строк
 	int m_columns; // число столбцов
-	double* m_data; // данные матрицы
-	double FormMatrixCompactScheme(MATRIX& alpha);
+	double* m_data; // данные матрицы	
 public:
 	MATRIX(int M, int N, double val = 0.0);
 	MATRIX(const MATRIX& src);
@@ -50,19 +49,13 @@ public:
 	static bool readFromFile(const char* fileName, MATRIX& matr);
 	static bool writeToFile(const char* fileName, MATRIX& matr);
 	
-	friend bool Gauss(const MATRIX& a, const VECTOR& b, VECTOR& x);
-	friend void CompactSchemeSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-
 	void CopyColumn(VECTOR& v, int j);
 	VECTOR CopyColumn2Vector(int j);
 	
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
 	double LUDecomposition(MATRIX& alfa);
+	double FormMatrixCompactScheme(MATRIX& alpha);
 
 	void EigenvaluesAndVectorsKrylov(complex<double>* lambda, complex<double> ** vect);
 	void EigenvaluesAndVectorsLeVerrierFaddeev(complex<double>* lambda, complex<double>** vect);
@@ -71,3 +64,11 @@ public:
 	~MATRIX();
 };
 double rand_range(double min, double max);
+
+bool Gauss(MATRIX& a, VECTOR& b, VECTOR& x);
+void CompactSchemeSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+

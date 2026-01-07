@@ -478,15 +478,15 @@ MATRIX::~MATRIX()
 /// <param name="x">решение СЛАУ</param>
 /// <param name="det">определитель матрицы a</param>
 /// <returns></returns>
-bool Gauss(const MATRIX &a, const VECTOR &b, VECTOR &x)
+bool Gauss(MATRIX &a, VECTOR &b, VECTOR &x)
 {
 	int i, k, m;
 	long double amm, aim;
 
 	// матрица должна быть квадратной и размерность вектора должна совпадать 
 	// с размерностью матрицы
-	if (a.m_columns != b.m_size || a.m_columns != a.m_rows) return false;
-	int size = a.m_rows;
+	if (a.columns() != b.size() || a.columns() != a.rows()) return false;
+	int size = a.rows();
 
 	// сведение исходной системы к системе с верхней треугольной матрицей
 	MATRIX alf(size, size);
@@ -495,26 +495,26 @@ bool Gauss(const MATRIX &a, const VECTOR &b, VECTOR &x)
 	bet = b;
 	for (m = 0; m <= size - 2; m++)
 	{
-		amm =  *(alf.m_data + m * size + m);
+		amm =  alf(m, m);
 		for (k = m; k <= size - 1; k++)
-			*(alf.m_data + m*size + k) /= amm;
-		*(bet.m_data + m)/= amm;
+			alf(m,k) /= amm;
+		bet[m]/= amm;
 		for (i = m + 1; i <= size - 1; i++)
 		{
-			aim = *(alf.m_data +i*size + m);
+			aim = alf(i,m);
 			for (k = m; k <= size - 1; k++)
-				*(alf.m_data +i*size + k) -= *(alf.m_data + m*size + k) * aim;
-			*(bet.m_data + i) -= *(bet.m_data + m) * aim;
+				alf(i,k) -= alf(m,k) * aim;
+			bet[i] -= bet[m] * aim;
 		}//end i 
 	}//end m 
 
 	// нахождение решения СЛАУ с верхней треугольной матрицей
-	*(x.m_data + size - 1) = *(bet.m_data +size - 1) / *(alf.m_data + size*(size - 1) + size - 1);
+	x[size - 1] = bet[size - 1] / alf(size - 1, size - 1);
 	for (i = size - 2; i >= 0; i--)
 	{
-		*(x.m_data + i) = *(bet.m_data +i);
+		x[i] = bet[i];
 		for (k = i + 1; k < size; k++)
-			*(x.m_data + i) -= *(alf.m_data + i*size +k) * *(x.m_data + k);
+			x[i] -= alf(i,k)* x[k];
 	}//end i
 	return true;
 	
@@ -585,35 +585,13 @@ double MATRIX::FormMatrixCompactScheme(MATRIX& alpha)
 /// <param name="x">решение системы уравнений</param>
 void CompactSchemeSolve(MATRIX &A, VECTOR& b, VECTOR& x)
 {
-	if (A.m_rows != A.m_columns) return;
-	int n = A.m_rows;
+	if (A.rows() != A.columns()) return;
+	int n = A.rows();
 	MATRIX alpha(n , n);
 	double det = A.FormMatrixCompactScheme(alpha);
 	// решение только для неособенной матрицы
-	if (det != 0.0)
-	{
-		/*VECTOR beta(n);
-		double sum = 0.0;
-		*beta.m_data = *b.m_data / *A.m_data;
-		for (int i = 1; i < n; i++)
-		{
-			sum = 0.0;
-			for (int j = 0; j <= i - 1; j++)
-				sum += *(alpha.m_data + i * n + j) * *(beta.m_data +j);
-			*(beta.m_data +i) = (*(b.m_data+i) - sum) / *(alpha.m_data + i * n + i);
-		}
-
-		// решение системы уравнений с труегольной матрицей		   
-		*(x.m_data + n - 1) = *(beta.m_data + n - 1);
-		for (int i = n - 2; i >= 0; i--)
-		{
-			sum = 0.0;
-			for (int j = n - 1; j > i; j--)
-				sum += *(alpha.m_data +i * n + j) * *(x.m_data + j);
-			*(x.m_data + i) = *(beta.m_data + i) - sum;
-		} */
+	if (abs(det) < 1.0e-36)
 		TriangleSolve(alpha, b, x);
-	}
 	
 }
 /// <summary>
@@ -624,26 +602,26 @@ void CompactSchemeSolve(MATRIX &A, VECTOR& b, VECTOR& x)
 /// <param name="x">решение системы</param>
 void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 {
-	int n = b.m_size;
+	int n = b.size();
 	VECTOR beta(n);
 	double sum = 0.0;
-	*beta.m_data = *b.m_data / *A.m_data;
+	beta[0] /= A(0,0);
 	for (int i = 1; i < n; i++)
 	{
 		sum = 0.0;
 		for (int j = 0; j <= i - 1; j++)
-			sum += *(A.m_data + i * n + j) * *(beta.m_data + j);
-		*(beta.m_data + i) = (*(b.m_data + i) - sum) / *(A.m_data + i * n + i);
+			sum += A(i,j) * beta[j];
+		beta[i] = (b[i] - sum) / A(i,i);
 	}
 
 	// решение системы уравнений с труегольной матрицей		   
-	*(x.m_data + n - 1) = *(beta.m_data + n - 1);
+	x[n - 1] = beta[n - 1];
 	for (int i = n - 2; i >= 0; i--)
 	{
 		sum = 0.0;
 		for (int j = n - 1; j > i; j--)
-			sum += *(A.m_data + i * n + j) * *(x.m_data + j);
-		*(x.m_data + i) = *(beta.m_data + i) - sum;
+			sum += A(i,j) * x[j];
+		x[i] = beta[i] - sum;
 	}
 
  }
@@ -655,21 +633,20 @@ void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 /// <param name="x">вектор решения системы линейныз уравнений</param>
 void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 { 
-	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
-	MATRIX Q(A.m_rows, A.m_columns), R(A.m_rows, A.m_columns);
-	int n = A.m_rows;
+	if (A.rows() != A.columns() || A.rows() != b.size()) return;
+	MATRIX Q(A.rows(), A.columns()), R(A.rows(), A.columns());
+	int n = A.rows();
 	A.QRDecomposition(Q, R);
-	VECTOR beta(b.m_size);
-	beta = Q.Transpose() * b;
+	VECTOR beta(Q.Transpose() * b);
 
 	// решение системы уравнений с верхней труегольной матрицей		   
-	*(x.m_data + n - 1) = *(beta.m_data + n - 1)/ *(R.m_data + (n - 1)*n + n - 1);
+	x[n - 1] = beta[n - 1]/ R(n - 1,n - 1);
 	for (int i = n - 2; i >= 0; i--)
 	{
 		double sum = 0.0;
 		for (int j = n - 1; j > i; j--)
-			sum += *(R.m_data + i * n + j) * *(x.m_data + j);
-		*(x.m_data + i) = (*(beta.m_data + i) - sum) / *(R.m_data + i*n + i);
+			sum += R(i, j) * x[j];
+		x[i] = (beta[i] - sum) / R(i, i);
 	}
 
 
@@ -682,16 +659,15 @@ void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 /// <param name="x"></param>
 void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 {
-	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+	if (A.rows() != A.columns() || A.rows() != b.size()) return;
 
-	MATRIX L(A.m_rows, A.m_columns), Anorm(A.m_rows, A.m_columns);
-	VECTOR bet(A.m_rows);
+	MATRIX L(A.rows(), A.columns()), Anorm(A.rows(), A.columns());
+	VECTOR bet(A.rows());
 
-	int n = A.m_rows;
+	int n = A.rows();
 	if (!A.IsSymmetric())
 	{
-		MATRIX At(A.m_rows, A.m_columns);
-		At = A.Transpose();
+		MATRIX At(A.Transpose());
 		Anorm =  At * A; // нормализация матрицы
 		bet = At * b;
 		Anorm.CholeskyDecomposition(L);
@@ -705,26 +681,26 @@ void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	VECTOR y(n);
 	for (int i = 0; i < n; i++)
 	{
-		*(y.m_data + i) = *(bet.m_data + i);
+		y[i] = bet[i];
 		double sum = 0.0;
 		for (int k = 0; k < i; k++)
 		{
-			sum += *(L.m_data + i * n + k) * *(y.m_data + k);
+			sum += L(i, k) * y[k];
 		}
-		*(y.m_data + i) -= sum;
-		*(y.m_data + i) /= *(L.m_data + i * n + i);
+		y[i] -= sum;
+		y[i] /= L(i,i);
 		
 	}
 
 	L = L.Transpose();
 	// решение системы уравнений с верхней труегольной матрицей L^tx = y   
-	*(x.m_data + n - 1) = *(y.m_data + n - 1) / *(L.m_data + (n - 1) * n + n - 1);
+	x[n - 1] = y[n - 1] / L(n - 1, n - 1);
 	for (int i = n - 2; i >= 0; i--)
 	{
 		double sum = 0.0;
 		for (int j = n - 1; j > i; j--)
-			sum += *(L.m_data + i * n + j) * *(x.m_data + j);
-		*(x.m_data + i) = (*(y.m_data + i) - sum) / *(L.m_data + i * n + i);
+			sum += L(i, j) * x[j];
+		x[i] = (y[i] - sum) / L(i,i);
 	}
 
 
@@ -779,32 +755,31 @@ double MATRIX::LUDecomposition(MATRIX& alfa)
 
 void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 {
-	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+	if (A.rows() != A.columns() || A.rows() != b.size()) return;
 
-	MATRIX alfa(A.m_rows, A.m_columns);
-	int n = A.m_rows;
+	MATRIX alfa(A.rows(), A.columns());
+	int n = A.rows();
 
 	double det = A.LUDecomposition(alfa);
-	if (abs(det) > 1.0e-36)
+	if (abs(det) < 1.0e-36) return;
+	// решение СЛАУ
+	VECTOR y(n);
+	for (int k = 0; k < n; k++)
 	{
-		// решение СЛАУ
-		VECTOR y(n);
-		for (int k = 0; k < n; k++)
-		{
-			double val = 0;
-			for (int j = 0; j <= k - 1; j++)
-				val += *(alfa.m_data + k * alfa.m_columns + j) * *(y.m_data + j);
-			*(y.m_data + k) = *(b.m_data + k) - val;
-		}
-
-		for (int k = n - 1; k >= 0; k--)
-		{
-			double sum = 0;
-			for (int j = n - 1; j > k; j--)
-				sum += *(alfa.m_data + k * alfa.m_columns + j) * *(x.m_data + j);
-			*(x.m_data + k) = (*(y.m_data + k) - sum) / *(alfa.m_data + k * alfa.m_columns + k);
-		}
+		double val = 0;
+		for (int j = 0; j <= k - 1; j++)
+			val += alfa(k, j) * y[j];
+		y[k] = b[k] - val;
 	}
+
+	for (int k = n - 1; k >= 0; k--)
+	{
+		double sum = 0;
+		for (int j = n - 1; j > k; j--)
+			sum += alfa(k, j) * x[j];
+		x[k] = (y[k] - sum) / alfa(k, k);
+	}
+	
 }
 
 /// <summary>

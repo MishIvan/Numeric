@@ -4,7 +4,7 @@
 #include <chrono>
 #include "MATRIX.h"
 #include "MatrixVector.h"
-const char* sys_methods[4]{ "Метод Гаусса","LU декомпозиция","Компактная схема исключения","QR декомпозиция" };
+const char* sys_methods[5]{ "Метод Гаусса","LU декомпозиция","Компактная схема исключения","QR декомпозиция", "LLT декомпозиция"};
 
 /// <summary>
 /// Получить полный путь файла в папке, из которой запускается исполняемый файл программы
@@ -321,7 +321,7 @@ void TestLinearSystemSolve(char* appPath, char* path)
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-    int  n = 1000;
+    int  n = 3000;
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     MATRIX A(n, n);
@@ -342,7 +342,7 @@ void TestLinearSystemSolve2()
 
     cout << "Метод" << '\t' << "Время, сек" << '\t' << "Норма невязки" << endl;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
         auto start = std::chrono::steady_clock::now();
         switch (i)
@@ -355,6 +355,8 @@ void TestLinearSystemSolve2()
             CompactSchemeSolve(A, v, x); break;
         case 3:
             QRDecompositionSolve(A, v, x); break;
+        case 4:
+            LLTDecompositionSolve(A, v, x); break;
         }
 
         auto end = std::chrono::steady_clock::now();
