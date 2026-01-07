@@ -3,6 +3,10 @@
 #include <complex>
 #include <vector>
 #include <cmath>
+#include <thread>
+#define MIN_SIZE_INVERSION 200
+#define MAX_ITER_NUMBER 30000
+
 /// <summary>
 /// Класс "матрица" матрица размера M x N
 /// </summary>
@@ -36,11 +40,12 @@ public:
 	MATRIX Reverse();
 	MATRIX Invert();
 	MATRIX InvertFaddev();
+	MATRIX InvertLU();
 	double Determinant();
 	double Sp();
 	double Minor(int i, int j);
 	bool IsSymmetric();
-	double UndiagonalSquareSumm();
+	double normI();
 
 	static bool readFromFile(const char* fileName, MATRIX& matr);
 	static bool writeToFile(const char* fileName, MATRIX& matr);
@@ -50,12 +55,14 @@ public:
 	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
+	friend void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 
 	void CopyColumn(VECTOR& v, int j);
 	VECTOR CopyColumn2Vector(int j);
 	
 	bool QRDecomposition(MATRIX& Q, MATRIX& R);
 	bool CholeskyDecomposition(MATRIX& L);
+	double LUDecomposition(MATRIX& alfa);
 
 	void EigenvaluesAndVectorsKrylov(complex<double>* lambda, complex<double> ** vect);
 	void EigenvaluesAndVectorsLeVerrierFaddeev(complex<double>* lambda, complex<double>** vect);
@@ -63,12 +70,4 @@ public:
 
 	~MATRIX();
 };
-
-class MATRIXEXT : public MATRIX
-{
-public:
-	MATRIXEXT(int M, int N) : MATRIX(M, N) {};
-	int getCountNotNumsUnderMD(double val);
-	
-};
-
+double rand_range(double min, double max);

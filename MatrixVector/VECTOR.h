@@ -38,7 +38,7 @@ public:
 	friend void QRDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 	friend void TriangleSolve(MATRIX& A, VECTOR& b, VECTOR& x);
-	friend void CopyColumn(MATRIX& A, VECTOR& v, int j);
+	friend void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x);
 
 	~VECTOR();
 };

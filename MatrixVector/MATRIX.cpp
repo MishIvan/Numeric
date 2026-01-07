@@ -1,5 +1,16 @@
 #include "MATRIX.h"
-#include <thread>
+
+/// <summary>
+/// Генарация вещественных случайных чисел
+/// </summary>
+/// <typeparam name="T">тип</typeparam>
+/// <param name="min">минимальное значение и нтервала</param>
+/// <param name="max">максимальное значение интервала</param>
+/// <returns>случайное число</returns>
+double rand_range(double min, double max) {
+	return min + (max - min) * std::rand() / (RAND_MAX + 1);
+}
+
 
 /// <summary>
 /// Конструктор матрицы M x N, всем элементам которой присваивается значение val
@@ -138,6 +149,24 @@ double MATRIX::Determinant()
 	MATRIX alpha(m_rows, m_columns);
 	return FormMatrixCompactScheme(alpha);
 }
+
+/// <summary>
+/// Вычисляет первую норму матрицы
+/// </summary>
+/// <returns>значение первой нормы матрицы</returns>
+double MATRIX::normI()
+{
+	double norm = 0;
+	for (int i = 0; i < m_rows; i++)
+	{
+		double sum = 0;
+		for (int j = 0; j < m_columns; j++)
+			sum += abs(*(m_data + i * m_columns + j));
+		if (sum > norm) norm = sum;
+	}
+	return norm;
+}
+
 /// <summary>
 /// Считывание данных их файла и загрузка их в матрицу matr
 /// </summary>
@@ -203,15 +232,6 @@ double MATRIX::Sp()
 	for (int i = 0; i < m_rows; i++)
 		for (int j = 0; j < m_columns; j++)
 			if (i == j) val += *(m_data + i * m_columns + j);
-	return val;
-}
-
-double MATRIX::UndiagonalSquareSumm()
-{
-	double val = 0.0;
-	for (int i = 0; i < m_rows; i++)
-		for (int j = 0; j < m_columns; j++)
-			if (i != j) val += *(m_data + i * m_columns + j) * *(m_data + i * m_columns + j);
 	return val;
 }
 
@@ -421,6 +441,27 @@ MATRIX MATRIX::Transpose()
 }
 
 /// <summary>
+/// Копировать вектор в  j-ю колонку матрицы
+/// </summary>
+/// <param name="v">вектор</param>
+/// <param name="j">номер колонки</param>
+void MATRIX::CopyColumn(VECTOR& v, int j)
+{
+	if (m_columns < j)
+	{
+		throw "Номер колонки превышает число колонок матрицы";
+		return;
+	}
+	if (m_rows != v.size())
+	{
+		throw "Число строк (число элементов в колонке) матрицы не совпадает с размерностью вектора";
+		return;
+	}
+	for (int i = 0; i < m_rows; i++)
+		*(m_data + i * m_columns + j) = v[i];
+}
+
+/// <summary>
 /// Деструктор: освобождение памяти, занимаемой под матрицу
 /// </summary>
 MATRIX::~MATRIX()
@@ -429,24 +470,6 @@ MATRIX::~MATRIX()
 }
 
 
-/// <summary>
-/// Получение количества элементов ниже главной диагонали и равных val
-/// </summary>
-/// <param name="val">значение</param>
-/// <returns>количество элементов</returns>
-
-int MATRIXEXT::getCountNotNumsUnderMD(double val) {
-	int count = 0;
-	for (int i = 0; i < m_rows; ++i) {
-		for (int j = 0; j < m_columns; j++) {
-			// получаем элементы ниже главной диагонали
-			if (i > j) {
-				if (*(m_data + i*m_columns + j) == val) count++;
-			}
-		}
-	}
-	return count;
-}
 /// <summary>
 /// Решение системы линейных алгебраических уравнений (СЛАУ) методом Гаусса с вычислением определителя матрицы системы 
 /// </summary>
@@ -707,6 +730,84 @@ void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 
 }
 /// <summary>
+/// Декомпозиция матрицы A = LU
+/// L - нижняя треугольная матрица, на главной диагонали которой расположены единицы
+/// U - верхняя треугольная матрица
+/// </summary>
+/// <param name="alfa">Матрицы L и U, ниже гланой диагонали которой расположены внедиагональные элементы L, 
+/// на главной диагонали и выше расположены элементы матрицы U</param>
+/// <returns>Определитель матрицы</returns>
+double MATRIX::LUDecomposition(MATRIX& alfa)
+{
+	double det = 0;
+	if (m_rows != m_columns) return det;
+
+	// декомпозиция матрицы
+	for (int i = 0; i < m_rows; i++)
+		for (int j = 0; j < m_columns; j++)
+		{
+			double val = 0;
+			if (i <= j)
+			{
+				for (int k = 0; k <= i - 1; k++)
+					val += *(alfa.m_data + i * alfa.m_columns + k) * *(alfa.m_data + k * alfa.m_columns + j);
+				*(alfa.m_data + i * alfa.m_columns + j) = *(m_data + i * m_columns + j) - val;
+			}
+			else
+			{
+				for (int k = 0; k <= j - 1; k++)
+					val += *(alfa.m_data + i * alfa.m_columns + k) * *(alfa.m_data + k * alfa.m_columns + j);
+				if (abs(*(alfa.m_data + j * alfa.m_columns + j)) < 1.0e-36) return 0;
+				*(alfa.m_data + i * alfa.m_columns + j) = (*(m_data + i * m_columns + j) - val) / *(alfa.m_data + j * alfa.m_columns + j);
+
+			}
+		}
+	det = 1;
+	for (int i = 0; i < alfa.m_rows; i++)
+		det *= *(alfa.m_data + i * alfa.m_columns + i);
+	return det;
+}
+
+/// <summary>
+/// Решение системы линейных алгебраических уравнений с применением метода LU декомпозиции A = LU
+/// L - нижняя тругольная матрица
+/// U - верхняя треугольная матрица 
+/// </summary>
+/// <param name="A">матрица</param>
+/// <param name="b">вектор правой части системы</param>
+/// <param name="x">решение системы</param>
+
+void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
+{
+	if (A.m_rows != A.m_columns || A.m_rows != b.m_size) return;
+
+	MATRIX alfa(A.m_rows, A.m_columns);
+	int n = A.m_rows;
+
+	double det = A.LUDecomposition(alfa);
+	if (abs(det) > 1.0e-36)
+	{
+		// решение СЛАУ
+		VECTOR y(n);
+		for (int k = 0; k < n; k++)
+		{
+			double val = 0;
+			for (int j = 0; j <= k - 1; j++)
+				val += *(alfa.m_data + k * alfa.m_columns + j) * *(y.m_data + j);
+			*(y.m_data + k) = *(b.m_data + k) - val;
+		}
+
+		for (int k = n - 1; k >= 0; k--)
+		{
+			double sum = 0;
+			for (int j = n - 1; j > k; j--)
+				sum += *(alfa.m_data + k * alfa.m_columns + j) * *(x.m_data + j);
+			*(x.m_data + k) = (*(y.m_data + k) - sum) / *(alfa.m_data + k * alfa.m_columns + k);
+		}
+	}
+}
+
+/// <summary>
 /// Вычисление минора квадаратной матрицы
 /// </summary>
 /// <param name="i">строка</param>
@@ -822,28 +923,83 @@ MATRIX MATRIX::Invert()
 		TriangleSolve(alpha, e, x);
 		A.CopyColumn(x, i);
 	}
+	
+	// итерационное уточнение обратной матрицы
+	if (m_rows >= MIN_SIZE_INVERSION)
+	{
+		MATRIX E(m_rows, m_columns);
+		for (int i = 0; i < m_rows; i++)
+			*(E.m_data + i * m_columns + i) = 1;
+		int iter = 0;
+		double norm;
+		do
+		{
+			MATRIX R(E - *this * A);
+			A = A * (E + R);
+			norm = R.normI();
+			if (++iter > MAX_ITER_NUMBER) break;
+		} while (norm < 1.0e-17);
+	}
 	return A;
 }
-
 /// <summary>
-/// Копировать вектор в  j-ю колонку матрицы
+/// Обращение матриы с пощью LU разложения
 /// </summary>
-/// <param name="v">вектор</param>
-/// <param name="j">номер колонки</param>
-void MATRIX::CopyColumn(VECTOR &v, int j)
+/// <returns>обратную матрицу</returns>
+MATRIX MATRIX::InvertLU()
 {
-	if (m_columns < j)
+	MATRIX D(m_rows, m_columns), alpha(m_rows, m_columns);
+	if (m_rows != m_columns) // матрица должна быть квадратной
+		return D;
+	double det = LUDecomposition(alpha); // декомпозиция A = LU
+	if (abs(det) < 1.0e-36)
+		return D;
+	// формирование элементов обратной матрицы
+	int n = m_rows;
+	for (int i = n - 1; i >= 0; i--)
+		for (int j = n - 1; j >= 0; j--)
+		{
+			double sum = 0;
+			if (i < j)
+			{
+				for (int k = i + 1; k < n; k++)
+					sum -= *(alpha.m_data + i * alpha.m_columns + k) * *(D.m_data + k * D.m_columns + j);
+				*(D.m_data + i * D.m_columns + j) = sum / *(alpha.m_data + i * alpha.m_columns + i);
+
+			}
+			else if (i == j)
+			{
+				for (int k = j + 1; k < n; k++)
+					sum += *(alpha.m_data + j * alpha.m_columns + k) * *(D.m_data + k * D.m_columns + j);
+				*(D.m_data + j * D.m_columns + i) = (1 - sum) / *(alpha.m_data + j * alpha.m_columns + j);
+
+			}
+			else
+			{
+				for (int k = j + 1; k < n; k++)
+					sum -= *(alpha.m_data + k * alpha.m_columns + j) * *(D.m_data + i * D.m_columns + k);
+				*(D.m_data + i * D.m_columns + j) = sum;
+
+			}
+		}
+	// итерационное уточнение обратной матрицы
+	if (m_rows >= MIN_SIZE_INVERSION)
 	{
-		throw "Номер колонки превышает число колонок матрицы";
-		return;
+		MATRIX E(m_rows, m_columns);
+		for (int i = 0; i < m_rows; i++)
+			*(E.m_data + i * m_columns + i) = 1;
+		int iter = 0;
+		double norm;
+		do
+		{
+			MATRIX R(E - *this * D);
+			D = D * (E + R);
+			norm = R.normI();
+			if (++iter > MAX_ITER_NUMBER) break;
+		} while (norm < 1.0e-17);
 	}
-	if (m_rows != v.size())
-	{
-		throw "Число строк (число элементов в колонке) матрицы не совпадает с размерностью вектора";
-		return;
-	}
-	for (int i = 0; i < m_rows; i++)
-		*(m_data + i * m_columns + j) = v[i];
+
+	return D;
 }
 
 /// <summary>
