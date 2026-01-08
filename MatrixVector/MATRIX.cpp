@@ -669,25 +669,20 @@ void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	{
 		MATRIX At(A.Transpose());
 		Anorm =  At * A; // нормализация матрицы
-		bet = At * b;
-		Anorm.CholeskyDecomposition(L);
+		bet = At * b;		
 	}
 	else
 	{
 		Anorm = A; bet = b;
 	}
-
+	Anorm.CholeskyDecomposition(L);
 	// решение системы с верхней треугольной матрицей Ly = b
 	VECTOR y(n);
 	for (int i = 0; i < n; i++)
 	{
 		y[i] = bet[i];
-		double sum = 0.0;
 		for (int k = 0; k < i; k++)
-		{
-			sum += L(i, k) * y[k];
-		}
-		y[i] -= sum;
+			y[i] -= L(i, k) * y[k];
 		y[i] /= L(i,i);
 		
 	}
@@ -697,10 +692,10 @@ void LLTDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	x[n - 1] = y[n - 1] / L(n - 1, n - 1);
 	for (int i = n - 2; i >= 0; i--)
 	{
-		double sum = 0.0;
+		x[i] = y[i];
 		for (int j = n - 1; j > i; j--)
-			sum += L(i, j) * x[j];
-		x[i] = (y[i] - sum) / L(i,i);
+			x[i] -= L(i, j) * x[j];
+		x[i] /= L(i,i);
 	}
 
 
@@ -766,18 +761,17 @@ void LUDecompositionSolve(MATRIX& A, VECTOR& b, VECTOR& x)
 	VECTOR y(n);
 	for (int k = 0; k < n; k++)
 	{
-		double val = 0;
+		y[k] = b[k];
 		for (int j = 0; j <= k - 1; j++)
-			val += alfa(k, j) * y[j];
-		y[k] = b[k] - val;
+			y[k]-= alfa(k, j) * y[j];
 	}
 
 	for (int k = n - 1; k >= 0; k--)
 	{
-		double sum = 0;
+		x[k] = y[k];
 		for (int j = n - 1; j > k; j--)
-			sum += alfa(k, j) * x[j];
-		x[k] = (y[k] - sum) / alfa(k, k);
+			x[k] -= alfa(k, j) * x[j];
+		x[k] /= alfa(k, k);
 	}
 	
 }

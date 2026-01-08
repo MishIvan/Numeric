@@ -4,7 +4,7 @@
 #include <chrono>
 #include "MATRIX.h"
 #include "MatrixVector.h"
-const char* sys_methods[5]{ "Метод Гаусса","LU декомпозиция","Компактная схема исключения","QR декомпозиция", "LLT декомпозиция"};
+const char* sys_methods[5]{ "Метод Гаусса","LU декомпозиция","Компактная схема\nисключения","QR декомпозиция", "LLT\nдекомпозиция"};
 
 /// <summary>
 /// Получить полный путь файла в папке, из которой запускается исполняемый файл программы
@@ -321,7 +321,7 @@ void TestLinearSystemSolve(char* appPath, char* path)
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-    int  n = 3000;
+    int  n = 1000;
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     MATRIX A(n, n);
@@ -332,7 +332,7 @@ void TestLinearSystemSolve2()
     double det = A.Determinant();
     if (abs(det) < 1.0e-36)
     {
-        cout << "Матрица СЛАУ вырождена" << endl;
+        std::cout << "Матрица СЛАУ вырождена" << endl;
         return;
     }
 
@@ -340,11 +340,13 @@ void TestLinearSystemSolve2()
     for (int i = 0; i < n; i++)
         v[i] = rand_range(-10.0, 200);
 
-    cout << "Метод" << '\t' << "Время, сек" << '\t' << "Норма невязки" << endl;
+    std::cout << "Порядок матрицы n = " << n << endl;
+    std::cout << "Метод" << "\t\t" << "Время, сек" << '\t' << "Норма невязки" << endl;
 
     for (int i = 0; i < 5; i++)
     {
         auto start = std::chrono::steady_clock::now();
+
         switch (i)
         {
         case 0:
@@ -363,7 +365,7 @@ void TestLinearSystemSolve2()
         auto duration = end - start;
         std::chrono::duration<double> secs = duration;
 
-        cout << sys_methods[i] << '\t' << secs.count() << '\t' << (A * x - v).norm() << endl;
+        std::cout << sys_methods[i] << '\t' << secs.count() << '\t' << (A * x - v).norm() << endl;
     }
 
 }
