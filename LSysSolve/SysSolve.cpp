@@ -25,21 +25,38 @@ double norm(const double* v, int n)
 }
 
 /// <summary>
-/// Является ли квадратная матрица симметричной
+/// Переобразование СЛАУ A*x = b к виду At*A*x = At*b
 /// </summary>
-/// <returns></returns>
-bool IsSymmetric(const double *A, int n)
+/// <param name="A">матрица СЛАУ</param>
+/// <param name="b">вектор правой части СЛАУ</param>
+/// <param name="Anorm">матрица At*A</param>
+/// <param name="bet">вектор At*b</param>
+/// <param name="n">порядок матрицы A</param>
+void TransformLinearSystem(const double* A, const double* b, double* Anorm, double* bet, int n)
 {
+	// Anorm = At * A; 
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < n; j++)
 		{
-			if (i == j) continue;
-			if (*(A + i * n + j) != *(A + j * n + i)) return false;
+			*(Anorm + i * n + j) = 0.0;
+			for (int k = 0; k < n; k++)
+				*(Anorm + i * n + j) += *(A + k * n + i) * *(A + k * n + j);
 		}
-	return true;
-}
+	// bet = At * b;
+	for (int i = 0; i < n; i++)
+	{
+		*(bet + i) = 0.0;
+		for (int k = 0; k < n; k++)
+			*(bet + i) += *(A + k * n + i) * *(b + k);
+	}
 
-void Matrix2Console(double* A, int n)
+}
+/// <summary>
+/// Вывод квадратной матрицы A порядка n на консоль
+/// </summary>
+/// <param name="A"></param>
+/// <param name="n"></param>
+void Matrix2Console(const double* A, int n)
 {
 	for (int i = 0; i < n; i++)
 	{
@@ -57,7 +74,7 @@ void Matrix2Console(double* A, int n)
 /// <param name="a">матрица коэффициентов СЛАУ</param>
 /// <param name="b">вектор правой части СЛАУ</param>
 /// <param name="x">решение СЛАУ</param>
-/// <param name="size">аорядок матрицы СЛАУ</param>
+/// <param name="size">порядок матрицы СЛАУ</param>
 /// <returns>определитель матрицы a</returns>
 double Gauss(const double *a, const double* b, double* x, int size)
 {
@@ -91,6 +108,7 @@ double Gauss(const double *a, const double* b, double* x, int size)
 	}//end m 
 
 	// нахождение решения СЛАУ с верхней треугольной матрицей
+	// на главной диагонали которой находятся единицы
 	*(x + size - 1) = *(bet + size - 1) / *(alf + (size - 1)*size + size - 1);
 	for (int i = size - 2; i >= 0; i--)
 	{
@@ -124,7 +142,6 @@ double FormMatrixCompactScheme(const double *A, double *alpha, int n)
 		if (i > 0) *(alpha + i) = *(A + i) / *A;
 	}
 
-	double sum = 0.0;
 	int k = 1, i = 1;
 	while (i < n)
 	{
@@ -135,25 +152,19 @@ double FormMatrixCompactScheme(const double *A, double *alpha, int n)
 		}
 		if (i >= k)
 		{
-			sum = 0.0;
+			*(alpha + i * n + k) = *(A + i * n + k);
 			for (int j = 0; j <= k - 1; j++)
-			{
-				sum += *(alpha + i * n + j) * *(alpha + j * n + k);
-			}
-			*(alpha + i * n + k) = *(A + i * n + k) - sum;
+				*(alpha + i * n + k) -= *(alpha + i * n + j) * *(alpha + j * n + k);
 		}
 		else
 		{
-			sum = 0.0;
+			if (std::abs(*(alpha + i * n + i)) < 1.0e-36) return 0.0;
+			*(alpha + i * n + k) = *(A + i * n + k);
 			for (int j = 0; j <= i - 1; j++)
 			{
-				sum += *(alpha + i * n + j) * *(alpha + j * n + k);
+				*(alpha + i * n + k) -= *(alpha + i * n + j) * *(alpha + j * n + k);
 			}
-			if(std::abs(*(alpha + i * n + i)) < 1.0e-36)
-			{
-				return 0.0;
-			}
-			*(alpha + i * n + k) = (*(A + i * n + k) - sum) / *(alpha + i * n + i);
+			*(alpha + i * n + k) /=  *(alpha + i * n + i);
 		}
 		k++;
 	}
@@ -207,11 +218,14 @@ void CompactSchemeSolve(const double* A, const double* b, double* x, int n)
 
 /// <summary>
 /// QR разложение квадратной матрицы A, A = QR
+/// где Q - ортогональная, а R - верхняя треугольная матрица
 /// </summary>
 /// <param name="Q">ортогональная матрица Q</param>
 /// <param name="R">верхняя треугольная матрица R</param>
 /// <param name="A">исходная матрица</param>
 /// <param name="n">порядок матрицы A</param>
+/// <returns>false - если на главной диагонали матрицы R 
+/// хотя бы один элемент равен нулю (A - вырожденная матрица), иначе - true</returns>
 bool QRDecomposition(const double* A, double* Q, double* R, int n)
 {
 	double sum = 0.0;
@@ -241,10 +255,8 @@ bool QRDecomposition(const double* A, double* Q, double* R, int n)
 			sum += *(Q + k * n + j) * *(Q + k * n + j);
 		*(R + j * n + j) = sqrt(sum);
 
-		if (*(R + j * n + j) == 0.0)
-		{
-			return false;
-		}
+		if (abs(*(R + j * n + j)) < 1.0e-36) return false;
+
 		for (int k = 0; k < n; k++)
 			*(Q + k * n + j) /= *(R + j * n + j);
 
@@ -280,7 +292,8 @@ void QRDecompositionSolve(const double* A, const double* b, double* x, int n)
 
 	}
 	delete[] Q;
-	// решение системы уравнений с верхней труегольной матрицей		   
+	// решение системы уравнений с верхней труегольной матрицей
+	// R*x = Qt*beta		   
 	*(x + n - 1) = *(beta + n - 1) / *(R + (n - 1)*n + n - 1);
 	for (int i = n - 2; i >= 0; i--)
 	{
@@ -310,19 +323,19 @@ double LUDecomposition(const double* A, double* alfa, int n)
 	for (int i = 0; i < n; i++)
 		for (int j = 0; j < n; j++)
 		{
-			double val = 0;
 			if (i <= j)
 			{
+				*(alfa + i * n + j) = *(A + i * n + j);
 				for (int k = 0; k <= i - 1; k++)
-					val += *(alfa + i * n + k) * *(alfa + k * n + j);
-				*(alfa + i * n + j) = *(A + i * n + j) - val;
+					*(alfa + i * n + j) -= *(alfa + i * n + k) * *(alfa + k * n + j);
 			}
 			else
 			{
-				for (int k = 0; k <= j - 1; k++)
-					val += *(alfa + i * n + k) * *(alfa + k * n + j);
 				if (abs(*(alfa + j * n + j)) < 1.0e-36) return 0;
-				*(alfa + i * n + j) = (*(A + i * n + j) - val) / *(alfa + j * n + j);
+				*(alfa + i * n + j) = *(A + i * n + j);
+				for (int k = 0; k <= j - 1; k++)
+					*(alfa + i * n + j) -= *(alfa + i * n + k) * *(alfa + k * n + j);
+				*(alfa + i * n + j) /= *(alfa + j * n + j);
 
 			}
 		}
@@ -397,50 +410,23 @@ bool CholeskyDecomposition(const double*A, double* L, int n)
 
 /// <summary>
 /// Решение системы уравнений с применением метода LLT декомпозиции A = LLT
+/// Метод применим только для положительно определённых симметричных матриц
 /// </summary>
 /// <param name="A">матрица</param>
 /// <param name="b">вектор правой части</param>
 /// <param name="x">вектор решения СЛАУ</param>
 void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 {	
-	double* Anorm; 
-	double* bet;
-	bool is_symmetric = IsSymmetric(A, n);
-	// в случае несимметричной матрицы решается СЛАУ At * A * x = At * b
-	if (!is_symmetric)
-	{
-		// Anorm = At * A; 
-		Anorm = new double[n * n * sizeof(double)];
-		for (int i = 0; i < n; i++)
-			for (int j = 0; j < n; j++)
-			{
-				*(Anorm + i * n + j) = 0.0;
-				for (int k = 0; k < n; k++)
-					*(Anorm + i * n + j) += *(A + k * n + i) * *(A + k * n + j);
-			}
-		// bet = At * b;
-		bet = new double[n * sizeof(double)];
-		for (int i = 0; i < n; i++)
-		{
-			*(bet + i) = 0.0;
-			for (int k = 0; k < n; k++)
-				*(bet + i) += *(A + k * n + i) * *(b + k);
-		}
-	}
-	else
-	{
-		Anorm = (double*)A; bet = (double*)b;
-	}
 	
 	double* L = new double[n * n * sizeof(double)];
 	memset(L, 0, n * n * sizeof(double));
-	CholeskyDecomposition(Anorm, L, n);
+	CholeskyDecomposition(A, L, n);
 
 	// решение системы с нижней треугольной матрицей Ly = b
 	double* y = new double[n * sizeof(double)];
 	for (int i = 0; i < n; i++)
 	{
-		*(y + i) = *(bet + i);
+		*(y + i) = *(b + i);
 		for (int k = 0; k < i; k++)
 			*(y + i) -= *(L +i*n + k) * *(y + k);
 		*(y + i) /= *(L + i * n + i);
@@ -451,7 +437,7 @@ void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 		for (int j = 0; j < n; j++)
 			if (i < j) *(L + i * n + j) = *(L + j * n + i);
 
-	// решение системы уравнений с верхней труегольной матрицей L^tx = y   
+	// решение системы уравнений с верхней труегольной матрицей L^t*x = y   
 	*(x + n - 1) = *(y + n - 1) / *(L + (n - 1)*n + n - 1);
 	for (int i = n - 2; i >= 0; i--)
 	{
@@ -463,11 +449,6 @@ void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 
 	delete[] y;
 	delete[] L;
-	if (!is_symmetric)
-	{
-		delete [] Anorm;
-		delete [] bet;
-	}
 }
 
 

@@ -5,7 +5,7 @@ const char* sys_methods[5]{ "Метод Гаусса","LU декомпозици
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-    int  n = 6;
+    int  n = 10;
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     double* A = new double[n*n*sizeof(double)];
@@ -17,6 +17,9 @@ void TestLinearSystemSolve2()
     double *x = new double[n * sizeof(double)];
     for (int i = 0; i < n; i++)
         *(v +i) = rand_range(-100.0, 200);
+
+    double* Anorm = nullptr;
+    double* bet = nullptr;
 
     double* errv = new double[n * sizeof(double)];
     std::cout << "Порядок матрицы n = " << n << std::endl;
@@ -37,7 +40,13 @@ void TestLinearSystemSolve2()
         case 3:
             QRDecompositionSolve(A, v, x, n); break;
         case 4:
-            LLTDecompositionSolve(A, v, x, n); break;
+            Anorm = new double[n * n * sizeof(double)];
+            bet = new double[n * sizeof(double)];
+            TransformLinearSystem(A, v, Anorm, bet, n);
+            LLTDecompositionSolve(Anorm, bet, x, n); 
+            delete[] Anorm;
+            delete[] bet;
+            break;
         }
 
         auto end = std::chrono::steady_clock::now();
