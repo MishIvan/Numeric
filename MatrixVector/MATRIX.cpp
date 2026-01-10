@@ -207,22 +207,7 @@ bool MATRIX::writeToFile(const char* fileName, MATRIX& matr)
 /// Является ли квадратная матрица симметричной
 /// </summary>
 /// <returns></returns>
-bool MATRIX::IsSymmetric()
-{
-	if (m_rows != m_columns)
-	{
-		throw "Симметричной может быть только квадратная матрица";
-		return false;
-	}
-	int n = m_rows;
-	for(int i=0; i < n; i++)
-		for (int j = 0; j < n; j++)
-		{
-			if (*(m_data + i*n + j) != *(m_data + j*n + i)) return false;
-		}
-	return true;
-}
-/// <summary>
+ /// <summary>
 /// Вычислить след матрицы, сумму её колонок по диагонали
 /// </summary>
 /// <returns>значение следа матрицы</returns>

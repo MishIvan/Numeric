@@ -25,6 +25,22 @@ double norm(const double* v, int n)
 }
 
 /// <summary>
+/// Является ли квадратная матрица симметричной
+/// </summary>
+/// <param name="A">матрица</param>
+/// <param name="n">порядок матрицы</param>
+/// <returns>true - матрица симметричная, false - матрица не симметричная</returns>
+bool IsSymmetric(const double* A, int n)
+{
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+		{
+			if (i != j && *(A + i * n + j) != *(A + j * n + i)) return false;
+		}
+	return true;
+}
+
+/// <summary>
 /// Переобразование СЛАУ A*x = b к виду At*A*x = At*b
 /// </summary>
 /// <param name="A">матрица СЛАУ</param>
@@ -497,4 +513,126 @@ bool UpperRelaxation(const double* A, const double* b, double* x, int n)
 	delete[] errv;
 	delete[] x0;
 	return true;
+}
+
+/// <summary>
+/// Решение СЛАУ методом вращения
+/// </summary>
+/// <param name="Asrc">матрица СЛАУ</param>
+/// <param name="b">вектор правой части СЛАУ</param>
+/// <param name="x">вектор решения СЛАУ</param>
+/// <param name="n">порядок матрицы</param>
+void RotationSolve(const double *Asrc, const double *b, double *x, int n)
+{
+	// унитарная матрица вращений
+	double* U = new double[n * n * sizeof(double)];
+	memset(U, 0, n * n * sizeof(double));
+
+	// диагональная матрица
+	double* A = new double[n * n * sizeof(double)];
+	memcpy(A, Asrc, n * n * sizeof(double));
+
+	int iter = 1;
+	while (true)
+	{
+		// поиск позиции максимального по модулю внедиагонального элемента
+		int i0 = 0, j0 = 0;
+		double val = 0.0;
+		for (int i = 0; i < n; i++)
+			for (int j = 0; j < n; j++)
+			{
+				double el = abs(*(A + i * n + j));
+				if (i != j && el > val)
+				{
+					val = el;
+					i0 = i;
+					j0 = j;
+				}
+			}
+		
+		std::cout << " Max aij = " << val << '\t' << "Number Iteration: " << iter << std::endl;
+		if (val < 1.0e-9) break;
+		// угол матрицы вращения
+		double fi = 0.5 * atan(2.0 * *(A + i0 * n + j0) / (*(A + i0 * n + i0) - *(A + j0 * n + j0)));
+		double cs = cos(fi);
+		double ss = sin(fi);
+
+		// U0*U1*...Un
+		double* U0 = new double[n * n * sizeof(double)];		
+		if (iter > 1)
+		{
+			memcpy(U0, U, n * n * sizeof(double));
+			for (int i = 0; i < n; i++)
+			{
+				*(U + i * n + i0) = *(U0 + i * n + i0) * cs +
+					*(U0 + i * n + j0) * ss;
+				*(U + i * n + j0) = (-1.0) * *(U0 + i * n + i0) * ss +
+					*(U0 + i * n + j0) * cs;
+			}
+		}
+		else
+		{
+			memset(U0, 0, n * n * sizeof(double));
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < n; j++)
+				{
+					if (i == j && i != i0 && j != j0) *(U0 + i * n + j) = 1.0;
+					else if (i == i0 && j == i0) *(U0 + i * n + j) = cs;
+					else if (i == i0 && j == j0) *(U0 + i * n + j) = -ss;
+					else if (i == j0 && j == j0) *(U0 + i * n + j) = cs;
+					else if (i == j0 && j == i0) *(U0 + i * n + j) = ss;
+					else *(U0 + i * n + j) = 0.0;
+				}
+
+			memcpy(U, U0, n * n * sizeof(double));
+		}
+		delete[] U0;
+		// Ut*A*U
+		double* B = new double[n * n * sizeof(double)];
+		memcpy(B, A, n * n * sizeof(double));
+		for (int i = 0; i < n; i++)
+		{
+			*(B + i * n + i0) = *(A + i * n + i0) * cs +
+				*(A + i * n + j0) * ss;
+			*(B + i * n + j0) = (-1.0) * *(A + i * n + i0) * ss +
+				*(A + i * n + j0) * cs;
+		}
+		memcpy(A, B, n * n * sizeof(double));
+		for (int i = 0; i < n; i++)
+		{
+			*(A + i0 * n + i) = *(B + i0 * n + i) * cs +
+				*(B + j0 * n + i) * ss;
+			*(A + j0 * n + i) = (-1.0) * *(B + i0 * n + i) * ss +
+				*(B + j0 * n + i) * cs;
+		}
+		delete[] B;
+		iter++;
+	}
+	Matrix2Console(A, n);
+	// x = Ut*A^(-1)*U*b
+	double* B = new double[n * n * sizeof(double)];
+	memcpy(B, U, n * n * sizeof(double)); 
+	// B = A(-1) * U
+		for (int i = 0; i < n; i++)
+			*(B + i * n + i) /= *(A + i * n + i);
+
+	// A = Ut*B = (Ut*A*U)^(-1) = Ut*A^(-1)*U
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+		{
+			*(A + i * n + j) = 0.0;
+			for (int k = 0; k < n; k++)
+				*(A + i * n + j) += *(U + k * n + i) * *(B + k * n + j);
+		}
+	delete[] B;
+	delete[] U;
+
+	// вычисление вектора решения
+	for (int i = 0; i < n; i++)
+	{
+		*(x + i) = 0.0;
+		for (int k = 0; k < n; k++)
+			*(x + i) += *(A + i * n + k) * *(b + k);
+	}
+	delete[] A;
 }
