@@ -1,6 +1,13 @@
 ﻿#include "SysSolve.h"
 
-const char* sys_methods[5]{ "Метод Гаусса","LU декомпозиция","Компактная схема\nисключения","QR декомпозиция", "LLT\nдекомпозиция" };
+const char* sys_methods[6]
+{
+    "Метод Гаусса","LU декомпозиция",
+    "Компактная схема\nисключения",
+    "QR декомпозиция", 
+    "LLT\nдекомпозиция",
+    "Верхняя\nрелаксация"
+};
 
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
@@ -25,7 +32,7 @@ void TestLinearSystemSolve2()
     std::cout << "Порядок матрицы n = " << n << std::endl;
     std::cout << "Метод" << "\t\t" << "Время, сек" << '\t' << "Норма невязки" << std::endl;
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 6; i++)
     {
         auto start = std::chrono::steady_clock::now();
 
@@ -44,6 +51,14 @@ void TestLinearSystemSolve2()
             bet = new double[n * sizeof(double)];
             TransformLinearSystem(A, v, Anorm, bet, n);
             LLTDecompositionSolve(Anorm, bet, x, n); 
+            delete[] Anorm;
+            delete[] bet;
+            break;
+        case 5:
+            Anorm = new double[n * n * sizeof(double)];
+            bet = new double[n * sizeof(double)];
+            TransformLinearSystem(A, v, Anorm, bet, n);
+            UpperRelaxation(Anorm, bet, x, n);
             delete[] Anorm;
             delete[] bet;
             break;
