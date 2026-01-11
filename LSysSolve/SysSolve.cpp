@@ -516,7 +516,8 @@ bool UpperRelaxation(const double* A, const double* b, double* x, int n)
 }
 
 /// <summary>
-/// Решение СЛАУ методом вращения
+/// Решение СЛАУ методом вращения, решение сводится
+/// к решению СЛАУ с верхней треугольной матрицей
 /// </summary>
 /// <param name="Asrc">матрица СЛАУ</param>
 /// <param name="b">вектор правой части СЛАУ</param>
@@ -524,115 +525,84 @@ bool UpperRelaxation(const double* A, const double* b, double* x, int n)
 /// <param name="n">порядок матрицы</param>
 void RotationSolve(const double *Asrc, const double *b, double *x, int n)
 {
-	// унитарная матрица вращений
-	double* U = new double[n * n * sizeof(double)];
-	memset(U, 0, n * n * sizeof(double));
 
-	// диагональная матрица
-	double* A = new double[n * n * sizeof(double)];
+	// верхняя тругольная матрица
+	double* A = new double[n * n * sizeof(double)]; // на текущей итерации
 	memcpy(A, Asrc, n * n * sizeof(double));
+
+	double* A0 = new double[n * n * sizeof(double)]; // на предыдущей итерации
+	memcpy(A0, Asrc, n * n * sizeof(double));
+
+	// преобразованный вектор правой части
+	double* bet0 = new double[n * sizeof(double)]; // на предыдущей итерации
+	memcpy(bet0, b, n * sizeof(double));
+
+	double* bet = new double[n * sizeof(double)]; // на текущей итерации
+	memcpy(bet, b, n * sizeof(double));
 
 	int iter = 1;
 	while (true)
 	{
-		// поиск позиции максимального по модулю внедиагонального элемента
+		// поиск позиции максимального по модулю элемента ниже главной диагонали
 		int i0 = 0, j0 = 0;
-		double val = 0.0;
+		double val = 0.0, el = 0.0;
 		for (int i = 0; i < n; i++)
 			for (int j = 0; j < n; j++)
 			{
-				double el = abs(*(A + i * n + j));
-				if (i != j && el > val)
+				if (i < j)
 				{
-					val = el;
-					i0 = i;
-					j0 = j;
+					el = abs(*(A + j * n + i));
+					if (el > val)
+					{
+						val = el;
+						i0 = i;
+						j0 = j;
+					}
 				}
 			}
+		if (val < 1.0e-17) break;
 		
-		std::cout << " Max aij = " << val << '\t' << "Number Iteration: " << iter << std::endl;
-		if (val < 1.0e-9) break;
-		// угол матрицы вращения
-		double fi = 0.5 * atan(2.0 * *(A + i0 * n + j0) / (*(A + i0 * n + i0) - *(A + j0 * n + j0)));
+		// угол матрицы вращения, находится по условию A(j0, i0) = 0
+		double fi = atan( *(A + j0 * n + i0) /  *(A + i0 * n + i0) );
 		double cs = cos(fi);
 		double ss = sin(fi);
 
-		// U0*U1*...Un
-		double* U0 = new double[n * n * sizeof(double)];		
-		if (iter > 1)
+		// A(n) = U*A(n-1), U - матрица вращения
+		// bet(n) = U*bet(n-1)
+		memcpy(A, A0, n * n * sizeof(double));
+		memcpy(bet, bet0, n * sizeof(double));
+		for (int i = 0; i < n; i++)
 		{
-			memcpy(U0, U, n * n * sizeof(double));
-			for (int i = 0; i < n; i++)
-			{
-				*(U + i * n + i0) = *(U0 + i * n + i0) * cs +
-					*(U0 + i * n + j0) * ss;
-				*(U + i * n + j0) = (-1.0) * *(U0 + i * n + i0) * ss +
-					*(U0 + i * n + j0) * cs;
-			}
-		}
-		else
-		{
-			memset(U0, 0, n * n * sizeof(double));
-			for (int i = 0; i < n; i++)
-				for (int j = 0; j < n; j++)
-				{
-					if (i == j && i != i0 && j != j0) *(U0 + i * n + j) = 1.0;
-					else if (i == i0 && j == i0) *(U0 + i * n + j) = cs;
-					else if (i == i0 && j == j0) *(U0 + i * n + j) = -ss;
-					else if (i == j0 && j == j0) *(U0 + i * n + j) = cs;
-					else if (i == j0 && j == i0) *(U0 + i * n + j) = ss;
-					else *(U0 + i * n + j) = 0.0;
-				}
+			*(A + i0 * n + i) = *(A0 + i0 * n + i) * cs +
+				*(A + j0 * n + i) * ss;
+			*(A + j0 * n + i) = (-1.0) * *(A0 + i0 * n + i) * ss +
+				*(A0 + j0 * n + i) * cs;
 
-			memcpy(U, U0, n * n * sizeof(double));
-		}
-		delete[] U0;
-		// Ut*A*U
-		double* B = new double[n * n * sizeof(double)];
-		memcpy(B, A, n * n * sizeof(double));
-		for (int i = 0; i < n; i++)
-		{
-			*(B + i * n + i0) = *(A + i * n + i0) * cs +
-				*(A + i * n + j0) * ss;
-			*(B + i * n + j0) = (-1.0) * *(A + i * n + i0) * ss +
-				*(A + i * n + j0) * cs;
-		}
-		memcpy(A, B, n * n * sizeof(double));
-		for (int i = 0; i < n; i++)
-		{
-			*(A + i0 * n + i) = *(B + i0 * n + i) * cs +
-				*(B + j0 * n + i) * ss;
-			*(A + j0 * n + i) = (-1.0) * *(B + i0 * n + i) * ss +
-				*(B + j0 * n + i) * cs;
-		}
-		delete[] B;
+			*(bet + i0) = *(bet0 + i0) * cs +
+				*(bet0 + j0) * ss;
+			*(bet + j0) = (-1.0) * *(bet0 + i0) * ss +
+				*(bet0 + j0) * cs;
+		}		
 		iter++;
+		// результаты для следующей итерации
+		memcpy(A0, A, n * n * sizeof(double));
+		memcpy(bet0, bet, n * sizeof(double));
 	}
-	Matrix2Console(A, n);
-	// x = Ut*A^(-1)*U*b
-	double* B = new double[n * n * sizeof(double)];
-	memcpy(B, U, n * n * sizeof(double)); 
-	// B = A(-1) * U
-		for (int i = 0; i < n; i++)
-			*(B + i * n + i) /= *(A + i * n + i);
 
-	// A = Ut*B = (Ut*A*U)^(-1) = Ut*A^(-1)*U
-	for (int i = 0; i < n; i++)
-		for (int j = 0; j < n; j++)
-		{
-			*(A + i * n + j) = 0.0;
-			for (int k = 0; k < n; k++)
-				*(A + i * n + j) += *(U + k * n + i) * *(B + k * n + j);
-		}
-	delete[] B;
-	delete[] U;
+	delete[] A0;
+	delete[] bet0;
 
 	// вычисление вектора решения
-	for (int i = 0; i < n; i++)
+	// решение системы уравнений с верхней труегольной матрицей A(n)*x = bet   
+	*(x + n - 1) = *(bet + n - 1) / *(A + (n - 1) * n + n - 1);
+	for (int i = n - 2; i >= 0; i--)
 	{
-		*(x + i) = 0.0;
-		for (int k = 0; k < n; k++)
-			*(x + i) += *(A + i * n + k) * *(b + k);
+		*(x + i) = *(bet + i);
+		for (int j = n - 1; j > i; j--)
+			*(x + i) -= *(A + i * n + j) * *(x + j);
+		*(x + i) /= *(A + i * n + i);
 	}
+
 	delete[] A;
+	delete[] bet;
 }

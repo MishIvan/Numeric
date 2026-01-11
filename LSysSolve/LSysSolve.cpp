@@ -13,7 +13,7 @@ const char* sys_methods[7]
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-    int  n = 6;
+    int  n = 10;
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     double* A = new double[n*n*sizeof(double)];
@@ -64,25 +64,8 @@ void TestLinearSystemSolve2()
             delete[] bet;
             break;
         case 6:
-            bool is_symmetric = IsSymmetric(A, n);
-            if (!is_symmetric)
-            {
-                Anorm = new double[n * n * sizeof(double)];
-                bet = new double[n * sizeof(double)];
-                TransformLinearSystem(A, v, Anorm, bet, n);
-            }
-            else
-            {
-                Anorm = A; bet = v;
-            }
-            RotationSolve(Anorm, bet, x, n);
-            if (!is_symmetric)
-            {
-                delete[] Anorm;
-                delete[] bet;
-            }
+            RotationSolve(A, v, x, n);
             break;
-
         }
 
         auto end = std::chrono::steady_clock::now();
