@@ -540,7 +540,6 @@ void RotationSolve(const double *Asrc, const double *b, double *x, int n)
 	double* bet = new double[n * sizeof(double)]; // на текущей итерации
 	memcpy(bet, b, n * sizeof(double));
 
-	int iter = 1;
 	while (true)
 	{
 		// поиск позиции максимального по модулю элемента ниже главной диагонали
@@ -582,8 +581,8 @@ void RotationSolve(const double *Asrc, const double *b, double *x, int n)
 				*(bet0 + j0) * ss;
 			*(bet + j0) = (-1.0) * *(bet0 + i0) * ss +
 				*(bet0 + j0) * cs;
-		}		
-		iter++;
+		}
+
 		// результаты для следующей итерации
 		memcpy(A0, A, n * n * sizeof(double));
 		memcpy(bet0, bet, n * sizeof(double));

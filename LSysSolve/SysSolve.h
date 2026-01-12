@@ -2,8 +2,6 @@
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
-#include <cstring>
-#include <utility>
 
 #define MAX_ITERATION_NUMBER 30000
 
