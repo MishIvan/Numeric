@@ -573,7 +573,7 @@ void RotationSolve(const double *Asrc, const double *b, double *x, int n)
 		for (int i = 0; i < n; i++)
 		{
 			*(A + i0 * n + i) = *(A0 + i0 * n + i) * cs +
-				*(A + j0 * n + i) * ss;
+				*(A0 + j0 * n + i) * ss;
 			*(A + j0 * n + i) = (-1.0) * *(A0 + i0 * n + i) * ss +
 				*(A0 + j0 * n + i) * cs;
 

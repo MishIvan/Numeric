@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdlib>
 
-#define MAX_ITERATION_NUMBER 30000
+#define MAX_ITERATION_NUMBER 60000
 
 double rand_range(double min, double max);
 double norm(const double* v, int n);

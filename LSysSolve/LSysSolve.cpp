@@ -13,7 +13,9 @@ const char* sys_methods[7]
 // Тестирование решения СЛАУ различного порядка
 void TestLinearSystemSolve2()
 {
-    int  n = 10;
+    int n = 0;
+    std::cout << "Введите число уравнений СЛАУ: ";
+    std::cin >> n;
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     double* A = new double[n*n*sizeof(double)];
@@ -28,6 +30,7 @@ void TestLinearSystemSolve2()
 
     double* Anorm = nullptr;
     double* bet = nullptr;
+    bool conv = false;
 
     double* errv = new double[n * sizeof(double)];
     std::cout << "Порядок матрицы n = " << n << std::endl;
@@ -35,6 +38,7 @@ void TestLinearSystemSolve2()
 
     for (int i = 0; i < 7; i++)
     {
+        if ((n >= 30 && i == 5) || (n >=300 && i == 6)) continue;
         auto start = std::chrono::steady_clock::now();
 
         switch (i)
@@ -59,9 +63,15 @@ void TestLinearSystemSolve2()
             Anorm = new double[n * n * sizeof(double)];
             bet = new double[n * sizeof(double)];
             TransformLinearSystem(A, v, Anorm, bet, n);
-            UpperRelaxation(Anorm, bet, x, n);
+            conv = UpperRelaxation(Anorm, bet, x, n);
             delete[] Anorm;
             delete[] bet;
+            if (!conv)
+            {
+                std::cout << sys_methods[i] << ": превышено максимальное число итерации\nдля метода верхней релаксации" << std::endl;
+                std::cout << "Метод не сходится" << std::endl;
+                continue;
+            }
             break;
         case 6:
             RotationSolve(A, v, x, n);
