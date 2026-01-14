@@ -124,10 +124,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LSysSolve.cpp" />
+    <ClCompile Include="SparseSolve.cpp" />
     <ClCompile Include="SysSolve.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SparseSolve.h" />
     <ClInclude Include="SysSolve.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="LSysSolve.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

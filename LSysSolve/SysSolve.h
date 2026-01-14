@@ -2,6 +2,9 @@
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
+#include <string>
+#include <Windows.h>
+#include <WinUser.h>
 
 #define MAX_ITERATION_NUMBER 60000
 
@@ -15,5 +18,5 @@ void CompactSchemeSolve(const double* A, const double* b, double* x, int n);
 void QRDecompositionSolve(const double* A, const double* b, double* x, int n);
 void LUDecompositionSolve(const double* A, const double* b, double* x, int n);
 void LLTDecompositionSolve(const double* A, const double* b, double* x, int n);
-bool UpperRelaxation(const double* A, const double* b, double* x, int n);
+bool Relaxation(const double* A, const double* b, double* x, int n, double omega);
 void RotationSolve(const double* Asrc, const double* b, double* x, int n);

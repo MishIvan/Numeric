@@ -468,14 +468,16 @@ void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 }
 
 /// <summary>
-/// Решение системы уравнений A*x = b методом вехней релаксации
+/// Решение системы уравнений A*x = b методом  релаксации
 /// для симметричной положительно определённой матрицы A
 /// </summary>
-/// <param name="A">матрица</param>
+/// <param name="A">матрица СЛАУ</param>
 /// <param name="b">вектор правой части</param>
 /// <param name="x">вектор решения СЛАУ</param>
+/// <param name="n">порядок матрицы A</param>
+/// <param name="omega">релаксационный множитель</param>
 /// <returns>true - если сходимость была достигнута, false - иначе</returns>
-bool UpperRelaxation(const double* A, const double* b, double* x, int n)
+bool Relaxation(const double* A, const double* b, double* x, int n, double omega)
 {
 	double* x0 = new double[n * sizeof(double)];
 	double *errv = new double[n * sizeof(double)];
@@ -483,7 +485,6 @@ bool UpperRelaxation(const double* A, const double* b, double* x, int n)
 
 	int iter = 0; // число итераций
 	double err_norm = 0.0; // погрешность
-	double omega = 0.99; // коэффициент релаксации
 	do
 	{		
 		for (int i = 0; i < n; i++)
@@ -508,7 +509,7 @@ bool UpperRelaxation(const double* A, const double* b, double* x, int n)
 			return false;
 		}
 		memcpy(x0, x, n * sizeof(double));
-	} while (err_norm > 1.0e-18);
+	} while (err_norm > 1.0e-16);
 	
 	delete[] errv;
 	delete[] x0;
