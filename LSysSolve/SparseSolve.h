@@ -9,3 +9,5 @@ struct SparseElement
 	int column;
 	double value;
 };
+
+double FullnessDegree(const std::vector<SparseElement> matrix);

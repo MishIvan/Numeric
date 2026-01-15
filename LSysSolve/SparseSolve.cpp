@@ -6,14 +6,13 @@ using namespace std;
 /// Поиск значения элемента на строке i и столбце j
 /// </summary>
 /// <param name="matrix">разреженная матрица</param>
-/// <param name="i">строка</param>
-/// <param name="j">столбец</param>
+/// <param name="row">строка</param>
+/// <param name="column">столбец</param>
 /// <returns>значение элемента</returns>
-double FindElement(const vector<SparseElement>& matrix,int i, int j = 1)
+double FindElement(const vector<SparseElement>& matrix,int _row, int _column = 1)
 {
-	auto iter = find_if(matrix.begin(), 
-		matrix.end(),
-		[i,j](const SparseElement &el) { return el.row == i && el.column == j; }
+	auto iter = find_if(matrix.begin(), matrix.end(),
+		[_row,_column](const SparseElement &el) { return el.row == _row && el.column == _column; }
 	);
 	if (iter != matrix.end())
 		return iter->value;
@@ -48,6 +47,85 @@ void MatrixSize(const vector<SparseElement>& matrix, int& rows, int& columns)
 	columns = iter->column;
 
 }
+/// <summary>
+/// Степень заполнения матрицы в процентах
+/// </summary>
+/// <param name="matrix">матрица</param>
+/// <returns>процент заполнения матрицы</returns>
+double FullnessDegree(const vector<SparseElement> matrix)
+{
+	int m = 0, n = 0;
+	MatrixSize(matrix, m, n);
+	if (m <= 0 || n <= 0) 
+		return NAN;
+	else 
+		(double)matrix.size() * 100.0 / (double)(m * n);
+}
+
+/// <summary>
+/// Евклидова (сферическая норма) вектора
+/// </summary>
+/// <param name="vect">разреженный вектор</param>
+/// <returns>значение нормы</returns>
+double SparseNormv(const vector<SparseElement>& vect) 
+{
+	if (vect.empty()) return 0.0;
+	double norm = 1.0;
+	for (const auto& elem : vect)
+		if(elem.column == 1)
+			norm *= elem.value * elem.value;
+	return sqrt(norm);
+}
+/// <summary>
+/// Погрешность решения - норма невязки A*x - b решения СЛАУ
+/// </summary>
+/// <param name="A">разреженная матрица СЛАУ</param>
+/// <param name="b">вектор правой части</param>
+/// <param name="x">полученное решение СЛАУ</param>
+/// <returns>погре</returns>
+double ErrorMeasure(const vector<SparseElement>& A, const vector<SparseElement>& b, const vector<SparseElement>& x)
+{
+	double err = NAN;
+	vector <SparseElement> ax, v_err;
+	
+	// A*x
+	double sum = 0;
+	for (const auto& elem_A : A)
+	{
+		for (const auto& elem_x : x)
+			if (elem_A.column == elem_x.row)
+				sum += elem_A.value * elem_x.value;
+		SparseElement el_ax{ elem_A.row,1,sum };
+		ax.push_back(el_ax);
+	} 
+		
+	
+	//  A*x - b доработать!!! 
+	SparseElement elem_err;
+	for (const auto& elem_ax : ax)
+	{
+		vector<SparseElement>::const_iterator iter;
+		for (iter = b.begin(); iter != b.end(); ++iter)
+			if (elem_ax.row == iter->row && elem_ax.column == 1 && iter->column == 1)
+			{
+				elem_err.row = elem_ax.row,
+				elem_err.column = 1;
+				elem_err.value = elem_ax.value - iter->value;
+				v_err.push_back(elem_err);
+				break;
+			}
+			
+		if (iter == b.end()) 
+		{
+			elem_err.row = elem_ax.row,
+			elem_err.column = 1;
+			elem_err.value = elem_ax.value;
+			v_err.push_back(elem_err);
+		}
+	}
+
+	return SparseNormv(v_err);
+}
 
 /// <summary>
 /// Решение СЛАУ методом вращения c разреженной матрицей, решение сводится
@@ -57,12 +135,21 @@ void MatrixSize(const vector<SparseElement>& matrix, int& rows, int& columns)
 /// <param name="b">вектор правой части СЛАУ</param>
 /// <param name="x">вектор решения СЛАУ</param>
 /// <returns>-1 - элемент не найден,
+/// -2 - число элементов в строке матрицы не совпадает с размерностью вектора
+/// или матрица не квадратная
 /// 0 - превышено максимальное число итераций, 
 /// 1 - решение завершено успешно</returns>
 int SparseRotationSolve(const vector<SparseElement>& A, 
 						const vector<SparseElement>& b, 
 						vector<SparseElement>& x)
 {
+	int m, n, p, q; // размерность матрицы и вектора
+	// проверка совпадения числа элементов в строке 
+	// матрицы A с размерностью вектора b 
+	MatrixSize(A, m, n);
+	if (m <= 0 || n <= 0 || m != n) return -2;
+	MatrixSize(b, p, q);
+	if (p <= 0 || q !=1 || p != n) return -2;
 
 	// верхняя тругольная матрица
 	vector<SparseElement> T = A; // на текущей итерации
@@ -87,6 +174,8 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 				{
 					return abs(one.value) < abs(two.value);
 				}
+				else
+					return false;
 			}
 		); 
 		if (iter == T.end()) return -1;
@@ -111,39 +200,57 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		// bet(k) = U*bet(k-1)
 		T = T0;
 		bet = bet0;
-		/*for (int i = 0; i < n; i++)
+
+		// заполнение строк T(i0,k) и T(j0,k)
+		for (auto iter_t = T.begin(); iter_t != T.end(); ++iter_t)
 		{
-			*(T + i0 * n + i) = *(T0 + i0 * n + i) * cs +
-				*(T0 + j0 * n + i) * ss;
-			*(T + j0 * n + i) = (-1.0) * *(T0 + i0 * n + i) * ss +
-				*(T0 + j0 * n + i) * cs;
+			double t_i0 = NAN, t_j0 = NAN;
+			int k = iter_t->column;
 
-			*(bet + i0) = *(bet0 + i0) * cs +
-				*(bet0 + j0) * ss;
-			*(bet + j0) = (-1.0) * *(bet0 + i0) * ss +
-				*(bet0 + j0) * cs;
-		} */
-		// T(i0,i)
-		iter = find_if(T.begin(), T.end(),
-			[i0](const SparseElement& el) { return el.row == i0; }
-			);
-		if (iter == T.end()) return -1;
+			if (iter_t->row == i0)
+			{
+				// T0(i0,i)
+				t_i0 = FindElement(T0, i0, k);
+				if (isnan(t_i0)) return -1;		
+
+				// T0(j0,i)
+				t_j0 = FindElement(T0, j0, k);
+				if (isnan(t_i0)) return -1;
+
+				// T(i0,k) = T0(i0,k)*cos(phi) + T0(j,k)*sin(phi)
+				iter_t->value = t_i0 * cs + t_j0 * ss;
+			}
+
+			if (iter_t->row == j0)
+			{
+				// T0(i0,i)
+				t_i0 = FindElement(T0, i0, k);
+				if (isnan(t_i0)) return -1;
+
+				// T0(j0,i)
+				t_j0 = FindElement(T0, j0, k);
+				if (isnan(t_i0)) return -1;
+
+				// T(j0,k) = T0(i0,k)*cos(phi) + T0*sin(phi)
+				iter_t->value = -t_i0 * ss + t_j0 * cs;
+			}
+		}
 		
-		// T0(i0,i)
-		auto iter_i0 = find_if(T0.begin(), T0.end(),
-			[i0](const SparseElement& el) { return el.row == i0; }
-		);
-		if (iter_i0 == T.end()) return -1;
+		// b0(i0)
+		double b_i0 = FindElement(bet0, i0, 1);
+		if (isnan(b_i0)) return -1;
 
-		// T0(j0,i)
-		auto iter_j0 = find_if(T0.begin(), T0.end(),
-			[j0](const SparseElement& el) { return el.row == j0; }
-		);
-		if (iter_j0 == T.end()) return -1;
-		 
-		// T(i0,k) = T0(i0,k)*cos(phi) + T0*sin(phi)
-		iter->value = iter_i0->value * cs + iter_j0->value * ss;
+		// b0(j0)
+		double b_j0 = FindElement(bet0, j0, 1);
+		if (isnan(b_j0)) return -1;
 
+		for (auto iter_b = bet.begin(); iter_b != bet.end(); ++iter_b)
+		{
+			if (iter_b->row == i0)
+				iter->value = b_i0 * cs + b_j0 * ss;
+			if (iter_b->row == j0)
+				iter->value = -b_i0 * ss + b_j0 * cs;
+		}
 		// результаты для следующей итерации
 		T0 = T;
 		bet0 = bet;
@@ -154,13 +261,41 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 
 	// вычисление вектора решения
 	// решение системы уравнений с верхней треугольной матрицей T(n)*x = bet(n)   
-	/* *(x + n - 1) = *(bet + n - 1) / *(T + (n - 1) * n + n - 1);
-	for (int i = n - 2; i >= 0; i--)
-	{
-		*(x + i) = *(bet + i);
-		for (int j = n - 1; j > i; j--)
-			*(x + i) -= *(T + i * n + j) * *(x + j);
-		*(x + i) /= *(T + i * n + i);
-	}*/
+
+	if (!x.empty()) x.clear();
+	val = FindElement(T, n, n);
+	if (isnan(val)) return -1;
+
+	SparseElement el{ n ,1,val };
+	x.push_back(el);
+	for (int i = n - 1; i >= 1; i--)
+	{ 
+
+		el.row = i;
+		el.column = 1;
+		val = FindElement(bet, i);
+		if (isnan(val)) return -1;
+	
+		double tval = NAN, xval = NAN;
+		for (int j = n; j > i; j--)
+		{
+			tval = FindElement(T, i, j);
+			if (isnan(tval)) return -1;
+
+			xval = FindElement(x, j);
+			if (isnan(xval)) return -1;
+
+			val -= tval * xval;
+		}
+		tval = FindElement(T, i, i);
+		if (isnan(tval)) return -1;
+
+		val /= tval;
+		x.push_back(el);
+	}
+	
+	reverse(x.begin(), x.end());
+	T.clear();
+	bet.clear();	
 	return 1;
 }

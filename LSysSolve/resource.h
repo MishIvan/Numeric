@@ -11,6 +11,7 @@
 #define IDS_RELAXATION                  107
 #define IDS_ROTATION                    108
 #define IDS_LU_DECOMPOSITION            109
+#define IDS_NOT_MATCHED                 110
 
 // Next default values for new objects
 // 

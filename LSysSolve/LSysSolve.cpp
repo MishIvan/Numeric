@@ -1,17 +1,5 @@
 ﻿#include "SysSolve.h"
 #include "resource.h"
-#define _CRT_SECURE_NO_WARNINGS
-
-const char* sys_methods[7]
-{
-    "Метод Гаусса",
-    "LU декомпозиция",
-    "Компактная схема\nисключения",
-    "QR декомпозиция", 
-    "LLT\nдекомпозиция",
-    "Верхняя\nрелаксация",
-    "Метод\nвращений"
-};
 
 std::string LPWSTRToStdString(LPWSTR lpws) {
     if (!lpws) return "";
@@ -31,13 +19,14 @@ std::string LPWSTRToStdString(LPWSTR lpws) {
     delete[] buff;
     return result;
 }
-std::string GetMethodName(int id_res)
+std::string GetResourceString(int id_res)
 {
     LPWSTR buff = new WCHAR[1024];
-    std::string result;
+    std::string result = "";
     int count = ::LoadString(::GetModuleHandle(NULL), id_res, buff, 1024*sizeof(WCHAR));
     if (count > 0)
         result = LPWSTRToStdString(buff);
+    delete[] buff;
     return result;
 }
 // Тестирование решения СЛАУ различного порядка
@@ -70,7 +59,7 @@ void TestLinearSystemSolve2()
 
     for (int i = 0; i < 7; i++)
     {
-        if ((n >= 30 && i == 5) || (n >=300 && i == 6)) continue;
+        //if ((n >= 30 && i == 5) || (n >=300 && i == 6)) continue;
         auto start = std::chrono::steady_clock::now();
 
         switch (i)
@@ -104,21 +93,29 @@ void TestLinearSystemSolve2()
             Anorm = new double[n * n * sizeof(double)];
             bet = new double[n * sizeof(double)];
             TransformLinearSystem(A, v, Anorm, bet, n);
-            conv = Relaxation(Anorm, bet, x, n, 0.8);
+            conv = Relaxation(Anorm, bet, x, n, 0.9);
             delete[] Anorm;
             delete[] bet;
             res_id = IDS_RELAXATION;
             if (!conv)
             {
-                method_name = GetMethodName(res_id);
-                std::cout << method_name << ": превышено максимальное число итерации\nдля метода верхней релаксации" << std::endl;
-                std::cout << "Метод не сходится" << std::endl;
+                method_name = GetResourceString(res_id);
+                std::string err_message = GetResourceString(IDS_EXCEED_MAX_NUMBER_ITERATION);
+                std::cout << method_name << ". " << err_message << std::endl;
                 continue;
             }
             break;
         case 6:
-            RotationSolve(A, v, x, n);
+            conv = RotationSolve(A, v, x, n);
             res_id = IDS_ROTATION;
+            if (!conv)
+            {
+                method_name = GetResourceString(res_id);
+                std::string err_message = GetResourceString(IDS_EXCEED_MAX_NUMBER_ITERATION);
+                std::cout << method_name << ". " << err_message << std::endl;
+                continue;
+            }
+
             break;
         }
 
@@ -133,7 +130,7 @@ void TestLinearSystemSolve2()
             for (int j = 0; j < n; j++)
                 *(errv + i) += *(A + i * n + j) * *(x + j);
         }
-        method_name = GetMethodName(res_id);
+        method_name = GetResourceString(res_id);
         std::cout << method_name << '\t' << secs.count() << '\t' << norm(errv, n) << std::endl;
     }
 
