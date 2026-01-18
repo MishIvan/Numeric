@@ -15,6 +15,6 @@ double FullnessDegree(const std::vector<SparseElement> matrix);
 int SparseRotationSolve(const std::vector<SparseElement>& A,
 	const std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x);
-double ErrorMeasure(const std::vector<SparseElement>& A,
-	const std::vector<SparseElement>& b,
-	const std::vector<SparseElement>& x);
+double ErrorMeasure(std::vector<SparseElement>& A,
+	std::vector<SparseElement>& b,
+	std::vector<SparseElement>& x);
