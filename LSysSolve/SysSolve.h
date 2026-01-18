@@ -3,12 +3,14 @@
 #include <chrono>
 #include <cstdlib>
 #include <string>
+#include <climits>
 #include <Windows.h>
 #include <WinUser.h>
 
 #define MAX_ITERATION_NUMBER 60000
 
 double rand_range(double min, double max);
+int irand_range(int min, int max);
 double norm(const double* v, int n);
 bool IsSymmetric(const double* A, int n);
 void TransformLinearSystem(const double* A, const double* b, double* Anorm, double* bet, int n);

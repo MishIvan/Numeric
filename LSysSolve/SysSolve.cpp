@@ -11,6 +11,17 @@ double rand_range(double min, double max)
 }
 
 /// <summary>
+/// Генарация целых случайных чисел
+/// </summary>
+/// <param name="min">минимальное значение и нтервала</param>
+/// <param name="max">максимальное значение интервала</param>
+/// <returns>случайное число в указанном интервале</returns>
+int irand_range(int min, int max)
+{
+	return min + (max - min) * std::rand() / (RAND_MAX + 1);
+}
+
+/// <summary>
 /// Вычисление сферической нормы n-мерного вектора v
 /// </summary>
 /// <param name="v">вектор</param>
@@ -105,7 +116,7 @@ double Gauss(const double *a, const double* b, double* x, int size)
 	for (m = 0; m <= size - 2; m++)
 	{
 		amm = *(alf + m*size + m);
-		if (std::abs(amm) < 1.0e-36)
+		if (std::abs(amm) <= DBL_MIN)
 		{
 			delete[] alf;
 			delete[] bet;
@@ -174,7 +185,7 @@ double FormMatrixCompactScheme(const double *A, double *alpha, int n)
 		}
 		else
 		{
-			if (std::abs(*(alpha + i * n + i)) < 1.0e-36) return 0.0;
+			if (std::abs(*(alpha + i * n + i)) <= DBL_MIN) return 0.0;
 			*(alpha + i * n + k) = *(A + i * n + k);
 			for (int j = 0; j <= i - 1; j++)
 			{
@@ -204,7 +215,7 @@ void CompactSchemeSolve(const double* A, const double* b, double* x, int n)
 	double* alpha = new double[n*n*sizeof(double)];
 	double det = FormMatrixCompactScheme(A, alpha, n);
 	// решение только для неособенной матрицы
-	if (abs(det) < 1.0e-36)
+	if (abs(det) <= DBL_MIN)
 	{
 		delete[] alpha;
 		return;
@@ -219,14 +230,14 @@ void CompactSchemeSolve(const double* A, const double* b, double* x, int n)
 		*(beta +i) /= *(alpha + i*n + i);
 	}
 
-	// решение системы уравнений с труегольной матрицей		   
-	*(x + n - 1) = *(beta + n - 1);
-	for (int i = n - 2; i >= 0; i--)
+	// решение системы уравнений с верхней треугольной матрицей		   
+	for (int i = n - 1; i >= 0; i--)
 	{
 		*(x + i) = *(beta + i);
-		for (int j = n - 1; j > i; j--)
-			*(x + i) -= *(alpha + i*n + j) * *(x + j);
+		for (int j = i + 1; j < n; j++)
+			*(x + i) -= *(alpha + i * n + j) * *(x + j);
 	}
+
 
 	delete[] alpha;
 	delete[] beta;
@@ -271,7 +282,7 @@ bool QRDecomposition(const double* A, double* Q, double* R, int n)
 			sum += *(Q + k * n + j) * *(Q + k * n + j);
 		*(R + j * n + j) = sqrt(sum);
 
-		if (abs(*(R + j * n + j)) < 1.0e-36) return false;
+		if (abs(*(R + j * n + j)) <= DBL_MIN) return false;
 
 		for (int k = 0; k < n; k++)
 			*(Q + k * n + j) /= *(R + j * n + j);
@@ -308,16 +319,16 @@ void QRDecompositionSolve(const double* A, const double* b, double* x, int n)
 
 	}
 	delete[] Q;
+
 	// решение системы уравнений с верхней труегольной матрицей
-	// R*x = Qt*beta		   
-	*(x + n - 1) = *(beta + n - 1) / *(R + (n - 1)*n + n - 1);
-	for (int i = n - 2; i >= 0; i--)
+	for (int i = n - 1; i >= 0; i--)
 	{
 		*(x + i) = *(beta + i);
-		for (int j = n - 1; j > i; j--)
+		for (int j = i + 1; j < n; j++)
 			*(x + i) -= *(R + i * n + j) * *(x + j);
 		*(x + i) /= *(R + i * n + i);
 	}
+
 	delete [] R;
 	delete[] beta;
 }
@@ -347,7 +358,7 @@ double LUDecomposition(const double* A, double* alfa, int n)
 			}
 			else
 			{
-				if (abs(*(alfa + j * n + j)) < 1.0e-36) return 0;
+				if (abs(*(alfa + j * n + j)) <= DBL_MIN) return 0;
 				*(alfa + i * n + j) = *(A + i * n + j);
 				for (int k = 0; k <= j - 1; k++)
 					*(alfa + i * n + j) -= *(alfa + i * n + k) * *(alfa + k * n + j);
@@ -375,7 +386,7 @@ void LUDecompositionSolve(const double* A, const double* b, double* x, int n)
 	double *alfa = new double[n*n*sizeof(double)];
 	
 	double det = LUDecomposition(A, alfa, n);
-	if (abs(det) < 1.0e-36) return;
+	if (abs(det) <= DBL_MIN) return;
 	// решение СЛАУ
 	double* y = new double[n * sizeof(double)];
 	for (int k = 0; k < n; k++)
@@ -454,14 +465,14 @@ void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 			if (i < j) *(L + i * n + j) = *(L + j * n + i);
 
 	// решение системы уравнений с верхней труегольной матрицей L^t*x = y   
-	*(x + n - 1) = *(y + n - 1) / *(L + (n - 1)*n + n - 1);
-	for (int i = n - 2; i >= 0; i--)
+	for (int i = n - 1; i >= 0; i--)
 	{
 		*(x + i) = *(y + i);
-		for (int j = n - 1; j > i; j--)
+		for (int j = i + 1; j < n; j++)
 			*(x + i) -= *(L + i * n + j) * *(x + j);
 		*(x + i) /= *(L + i * n + i);
 	}
+
 
 	delete[] y;
 	delete[] L;
@@ -509,7 +520,7 @@ bool Relaxation(const double* A, const double* b, double* x, int n, double omega
 			return false;
 		}
 		memcpy(x0, x, n * sizeof(double));
-	} while (err_norm > 1.0e-16);
+	} while (err_norm > DBL_EPSILON);
 	
 	delete[] errv;
 	delete[] x0;
@@ -560,7 +571,7 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 					}
 				}
 			}
-		if (val < 1.0e-17) break;
+		if (val < DBL_EPSILON) break;
 		
 		// угол матрицы вращения, находится по условию T(k)(j0, i0) = 0
 		double fi = atan( *(T + j0 * n + i0) /  *(T + i0 * n + i0) );
@@ -602,14 +613,14 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 
 	// вычисление вектора решения
 	// решение системы уравнений с верхней труегольной матрицей A(n)*x = bet   
-	*(x + n - 1) = *(bet + n - 1) / *(T + (n - 1) * n + n - 1);
-	for (int i = n - 2; i >= 0; i--)
+	for (int i = n - 1; i >= 0; i--)
 	{
 		*(x + i) = *(bet + i);
-		for (int j = n - 1; j > i; j--)
+		for (int j = i + 1; j < n; j++)
 			*(x + i) -= *(T + i * n + j) * *(x + j);
 		*(x + i) /= *(T + i * n + i);
 	}
+
 
 	delete[] T;
 	delete[] bet;
