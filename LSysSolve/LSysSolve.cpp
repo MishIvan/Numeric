@@ -191,11 +191,9 @@ void SparseTestSolve()
     PrintMatrix(A);
     std::cout << "Степень заполнения матрицы: " << FullnessDegree(A) << " %" << std::endl;
     
-    int k = 0;
-    p = n < 20 ? n : n / 3;
-    for (int i = 0; i < p; i++)
+    for (int i = 1; i <=n; i++)
     {
-        SparseElement sp_el{ ++k , 1 , rand_range(-100.0, 200) };
+        SparseElement sp_el{ i , 1 , rand_range(-100.0, 200) };
         v.push_back(sp_el);
     }
 

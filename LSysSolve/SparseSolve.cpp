@@ -49,6 +49,45 @@ void MatrixSize(const vector<SparseElement>& matrix, int& rows, int& columns)
 
 }
 /// <summary>
+/// ”мнoжение матриц first и second
+/// </summary>
+/// <param name="first">матрица слева</param>
+/// <param name="second">матрица справа</param>
+/// <returns>произведение матриц</returns>
+vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
+	const vector<SparseElement>& second)
+{
+	map<int, map<int, double>> matrix;
+	vector <SparseElement> result;
+	for (const auto& el_first : first)
+	{
+		map<int, double> mrow;
+		if (matrix.find(el_first.row) == matrix.end())
+			matrix[el_first.row] = mrow;
+		for(const auto& el_second : second)
+			if (el_first.column == el_second.row)
+			{
+				if (matrix[el_first.row].find(el_second.column) == matrix[el_first.row].end())
+					matrix[el_first.row][el_second.column] = el_first.value * el_second.value;
+				else
+					matrix[el_first.row][el_second.column] += el_first.value * el_second.value;
+			}
+	}
+
+	for (const auto matrix_el : matrix)
+	{
+		map<int, double> mrow = matrix_el.second;
+		int row = matrix_el.first;
+		for (const auto& mrow_el : mrow)
+		{
+			SparseElement res_el{ row, mrow_el.first, mrow_el.second };
+			result.push_back(res_el);
+		}
+	}
+
+	return result;
+}
+/// <summary>
 /// —тепень заполнени€ матрицы в процентах
 /// </summary>
 /// <param name="matrix">матрица</param>
@@ -133,20 +172,7 @@ double ErrorMeasure(vector<SparseElement>& A,
 
 	// A*x
 	SparseElement el;
-	for (const auto& elem_A : A)
-	{
-		double sum = 0.0;
-		for (const auto& elem_x : x)
-			if (elem_A.column == elem_x.row)
-				sum += elem_A.value * elem_x.value;
-		el.row = elem_A.row;
-		el.column = 1;
-		el.value = sum;
-		ax.push_back(el);
-	}
-	PrintMatrix(ax);
-	std::cout << "***" << endl;
-	PrintMatrix(b);
+	ax = SparseMultiply(A, x);
 	//  A*x - b 
 	for (const auto& elem_ax : ax)
 		for (const auto& elem_b : b)
@@ -157,7 +183,7 @@ double ErrorMeasure(vector<SparseElement>& A,
 				el.value = elem_ax.value - elem_b.value;
 				v_err.push_back(el);
 			}
-			
+
 	for (const auto& elem_ax : ax)
 		if (FindElement(v_err, elem_ax.row) == 0)
 		{
@@ -297,7 +323,6 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 	
 	T0.clear();
 	bet0.clear();
-	PrintMatrix(T);
 
 	// вычисление вектора решени€
 	// решение системы уравнений с верхней треугольной матрицей T(n)*x = bet(n)   
