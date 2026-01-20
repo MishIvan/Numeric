@@ -167,11 +167,16 @@ void SparseTestSolve()
     int n = 0, p = 0;
     std::cout << "Введите число уравнений СЛАУ: ";
     std::cin >> n;
+
+    int fill_perc = 0;
+    std::cout << "Степень заполнения матрицы в процентах (целое число):";
+    std::cin >> fill_perc;
+
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     // для разреженных матриц и векторов нумерация элементов начинается с 1
     std::vector<SparseElement> A, v, x;
-    p = n < 20 ? n : n / 10;
+    p = fill_perc*n/100;
     for (int i = 1; i <= n; i++)
     {
         SparseElement sp_el{ i , i , rand_range(-1.0e3, 1.0e3) };
@@ -181,15 +186,19 @@ void SparseTestSolve()
             if (i != j)
             {
                 sp_el.row = i;
-                sp_el.column = n >= 20 ? irand_range(1, n) : j;
+                sp_el.column = fill_perc == 100 ? j : irand_range(1, n);
                 sp_el.value = rand_range(-1.0e3, 1.0e3);
                 A.push_back(sp_el);
             }
         }
     }
 
-    PrintMatrix(A);
-    std::cout << "Степень заполнения матрицы: " << FullnessDegree(A) << " %" << std::endl;
+    //PrintMatrix(A, n);
+    //for (const auto& elem_a : A)
+    //	std::cout << elem_a.row << '\t' << elem_a.column << '\t' << elem_a.value << std::endl;
+
+    double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
+    std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
     
     for (int i = 1; i <=n; i++)
     {
@@ -208,7 +217,7 @@ void SparseTestSolve()
         {
         case 0:
             
-            conv = SparseRotationSolve(A, v, x);
+            conv = SparseRotationSolve(A, v, x, n);
             res_id = IDS_ROTATION;
             if (conv < 1)
             {
@@ -226,7 +235,7 @@ void SparseTestSolve()
         std::chrono::duration<double> secs = duration;
 
         method_name = GetResourceString(res_id);
-        std::cout << method_name << '\t' << secs.count() << '\t' << ErrorMeasure(A, v, x) << std::endl;
+        std::cout << method_name << '\t' << secs.count() << '\t' << ErrorMeasure(A, v, x, n) << std::endl;
 
 
     }

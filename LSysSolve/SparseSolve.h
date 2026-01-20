@@ -11,11 +11,10 @@ struct SparseElement
 	double value;
 };
 
-void PrintMatrix(std::vector<SparseElement> matrix);
-double FullnessDegree(const std::vector<SparseElement> matrix);
+void PrintMatrix(std::vector<SparseElement> matrix, int n);
 int SparseRotationSolve(const std::vector<SparseElement>& A,
 	const std::vector<SparseElement>& b,
-	std::vector<SparseElement>& x);
+	std::vector<SparseElement>& x, int n);
 double ErrorMeasure(std::vector<SparseElement>& A,
 	std::vector<SparseElement>& b,
-	std::vector<SparseElement>& x);
+	std::vector<SparseElement>& x, int n);

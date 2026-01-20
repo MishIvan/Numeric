@@ -21,34 +21,6 @@ double FindElement(const vector<SparseElement>& matrix,int _row, int _column = 1
 }
 
 /// <summary>
-/// Вычисление размера разреженной матрицы
-/// предполагается, что все элементы на гланой диагонали ненулевые
-/// </summary>
-/// <param name="matrix">разреженная матрица</param>
-/// <param name="rows">число строк</param>
-/// <param name="columns">число столбцов</param>
-void MatrixSize(const vector<SparseElement>& matrix, int& rows, int& columns)
-{
-	// максимальное значение строки
-	vector<SparseElement>::const_iterator iter = max_element(matrix.begin(), matrix.end(),
-		[](const SparseElement& one, const SparseElement& two)
-		{
-				return one.row < two.row;
-		});
-	if (iter == matrix.end()) { rows = -1; columns = -1; return; }
-	rows = iter->row;
-
-	// максимальное значение колонки
-	iter = max_element(matrix.begin(), matrix.end(),
-		[](const SparseElement& one, const SparseElement& two)
-		{
-			return one.column < two.column;
-		});
-	if (iter == matrix.end()) { rows = -1; columns = -1; return; }
-	columns = iter->column;
-
-}
-/// <summary>
 /// Умнoжение матриц first и second
 /// </summary>
 /// <param name="first">матрица слева</param>
@@ -62,12 +34,12 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 	for (const auto& el_first : first)
 	{
 		map<int, double> mrow;
-		if (matrix.find(el_first.row) == matrix.end())
+		if (matrix.count(el_first.row) == 0)
 			matrix[el_first.row] = mrow;
 		for(const auto& el_second : second)
 			if (el_first.column == el_second.row)
 			{
-				if (matrix[el_first.row].find(el_second.column) == matrix[el_first.row].end())
+				if (matrix[el_first.row].count(el_second.column) == 0)
 					matrix[el_first.row][el_second.column] = el_first.value * el_second.value;
 				else
 					matrix[el_first.row][el_second.column] += el_first.value * el_second.value;
@@ -88,28 +60,13 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 	return result;
 }
 /// <summary>
-/// Степень заполнения матрицы в процентах
-/// </summary>
-/// <param name="matrix">матрица</param>
-/// <returns>процент заполнения матрицы</returns>
-double FullnessDegree(const vector<SparseElement> matrix)
-{
-	int m = 0, n = 0;
-	MatrixSize(matrix, m, n);
-	if (m <= 0 || n <= 0) 
-		return NAN;
-	else 
-		return (double)matrix.size() * 100.0 / (double)(m * n);
-}
-/// <summary>
 /// Вывод на консоль матрицы или вектора
 /// </summary>
 /// <param name="matrix">разреженная матрица</param>
-void PrintMatrix(vector<SparseElement> matrix)
+/// <param name="n">порядок матрицы</param>
+void PrintMatrix(vector<SparseElement> matrix, int n)
 {
-	int m = 0, n = 0;
-	MatrixSize(matrix, m, n); // определение размера матрицы
-	for (int i = 1; i <= m; i++)
+	for (int i = 1; i <= n; i++)
 	{
 		for (int j = 1; j <= n; j++)
 		{
@@ -155,10 +112,12 @@ bool VectorCompare(const SparseElement& one, const SparseElement& two)
 /// <param name="A">разреженная матрица СЛАУ</param>
 /// <param name="b">вектор правой части</param>
 /// <param name="x">полученное решение СЛАУ</param>
+/// <param name="n">порядок матрицы и размерность вектора правой части</param>
 /// <returns>погрешность</returns>
 double ErrorMeasure(vector<SparseElement>& A, 
 					vector<SparseElement>& b, 
-					vector<SparseElement>& x)
+					vector<SparseElement>& x,
+					int n)
 {
 	vector <SparseElement> ax, v_err;
 	if(!is_sorted(A.begin(), A.end(), 
@@ -173,34 +132,31 @@ double ErrorMeasure(vector<SparseElement>& A,
 	// A*x
 	SparseElement el;
 	ax = SparseMultiply(A, x);
-	//  A*x - b 
-	for (const auto& elem_ax : ax)
-		for (const auto& elem_b : b)
-			if (elem_ax.row == elem_b.row)
-			{
-				el.row = elem_ax.row;
-				el.column = 1;
-				el.value = elem_ax.value - elem_b.value;
-				v_err.push_back(el);
-			}
 
 	for (const auto& elem_ax : ax)
-		if (FindElement(v_err, elem_ax.row) == 0)
-		{
-			el.row = elem_ax.row;
-			el.column = 1;
-			el.value = elem_ax.value;
-			v_err.push_back(el);
-		}
-
+		cout << elem_ax.row  << '\t' << elem_ax.value << endl;
+	cout << "***" << endl;
 	for (const auto& elem_b : b)
-		if (FindElement(v_err, elem_b.row) == 0)
-		{
-			el.row = elem_b.row;
-			el.column = 1;
-			el.value = -elem_b.value;
-			v_err.push_back(el);
-		}
+		cout << elem_b.row << '\t' << elem_b.value << endl;
+	cout << "***" << endl;
+	for (const auto& elem_x : x)
+		cout << elem_x.row << '\t' << elem_x.value << endl;
+
+
+	// A*x - b
+	for (int i = 1; i <= n; i++)
+	{
+		double val = FindElement(ax, i) - FindElement(b, i);
+		if (abs(val) <= DBL_MIN) continue;
+		el.row = i;
+		el.column = 1;
+		el.value = val;
+		v_err.push_back(el);
+	}
+
+	//cout << "***" << endl;
+	//for (const auto& elem_err : v_err)
+	//	cout << elem_err.row << '\t' << elem_err.column << '\t' << elem_err.value << endl;
 
 	return SparseNormv(v_err);
 }
@@ -212,6 +168,7 @@ double ErrorMeasure(vector<SparseElement>& A,
 /// <param name="A">матрица СЛАУ</param>
 /// <param name="b">вектор правой части СЛАУ</param>
 /// <param name="x">вектор решения СЛАУ</param>
+/// <param name="n">порядок матрицы и размерность вектора правой части</param>
 /// <returns>-1 - деление на ноль, нулевой элемент на главной диагонали
 /// -2 - число элементов в строке матрицы не совпадает с размерностью вектора
 /// или матрица не квадратная
@@ -219,16 +176,9 @@ double ErrorMeasure(vector<SparseElement>& A,
 /// 1 - решение завершено успешно</returns>
 int SparseRotationSolve(const vector<SparseElement>& A, 
 						const vector<SparseElement>& b, 
-						vector<SparseElement>& x)
+						vector<SparseElement>& x,
+						int n)
 {
-	int m, n, p, q; // размерность матрицы и вектора
-	// проверка совпадения числа элементов в строке 
-	// матрицы A с размерностью вектора b 
-	MatrixSize(A, m, n);
-	if (m <= 0 || n <= 0 || m != n) return -2;
-	MatrixSize(b, p, q);
-	if (p <= 0 || q !=1 || p != n) return -2;
-
 	// верхняя тругольная матрица
 	vector<SparseElement> T; // на текущей итерации
 
