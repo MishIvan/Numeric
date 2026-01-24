@@ -22,6 +22,20 @@ int irand_range(int min, int max)
 }
 
 /// <summary>
+/// Скалярное произведение векторов (v1, v2)
+/// </summary>
+/// <param name="v1">вектор</param>
+/// <param name="v2">вектор</param>
+/// <param name="n">размерность векторов v1 и v2</param>
+/// <returns>скалярное произведение векторов v1 и v2</returns>
+double ScalarProduct(const double *v1, const double *v2, int n)
+{ 
+	double result = 0.0;
+	for (int i = 0; i < n; i++)
+		result += *(v1 + i) * *(v2 + i);
+	return result;
+}
+/// <summary>
 /// Вычисление сферической нормы n-мерного вектора v
 /// </summary>
 /// <param name="v">вектор</param>
@@ -29,10 +43,10 @@ int irand_range(int min, int max)
 /// <returns>значение нормы</returns>
 double norm(const double* v, int n)
 {
-	double nrm = 0.0;
-	for (int i = 0; i < n; i++)
-		nrm += *(v + i) * *(v + i);
-	return sqrt(nrm);
+	//double nrm = 0.0;
+	//for (int i = 0; i < n; i++)
+	//	nrm += *(v + i) * *(v + i);
+	return sqrt(ScalarProduct(v, v, n));
 }
 
 /// <summary>
@@ -624,5 +638,92 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 
 	delete[] T;
 	delete[] bet;
+	return true;
+}
+/// <summary>
+/// Решение системы уравнений A*x = b методом градиентного спуска
+/// для симметричной положительно определённой матрицы A
+/// </summary>
+/// <param name="A">матрица СЛАУ</param>
+/// <param name="b">вектор правой части</param>
+/// <param name="x">вектор решения СЛАУ</param>
+/// <param name="n">порядок матрицы A</param>
+/// <param name="omega">релаксационный множитель</param>
+/// <returns>true - если сходимость была достигнута, false - иначе</returns>
+bool GradientDescent(const double* A, const double* b, double* x, int n)
+{
+
+	// градиент: 2*(Ax0 - b)
+	auto Gradient = [A, b, n](const double* x, double *result)
+	{
+		double* ax = new double[n * sizeof(double)];
+		memset(ax, 0, n * sizeof(double));
+		for (int i = 0; i < n; i++)
+		{
+			for (int j = 0; j < n; j++)
+				*(ax + i) += *(A + i * n + j) * *(x + j);
+			*(result + i) = 2.0 * (*(ax + i) - *(b + i));
+		}
+		delete[] ax;
+	};
+
+	// A*(Ax0 - b)
+	auto VectorRight = [A, b, n](const double* x, double* result)
+	{
+		double* ax = new double[n * sizeof(double)];
+		memset(ax, 0, n * sizeof(double));
+		for (int i = 0; i < n; i++)
+		{
+			for (int j = 0; j < n; j++)
+				*(ax + i) += *(A + i * n + j) * *(x + j);
+			*(ax + i) -= *(b + i);
+		}
+
+		memset(result, 0, n * sizeof(double));
+		for (int i = 0; i < n; i++)
+			for(int j = 0; j < n; j++)
+				*(result + i) += *(A + i * n + j) * *(ax + j);
+		delete[] ax;
+	};
+
+	double *x0 = new double[n * n * sizeof(double)];
+	memset(x0, 0, n * sizeof(double));
+	*x0 = 1.0;
+	double* errv = new double[n * sizeof(double)];
+	double *grad = new double[n * sizeof(double)];
+	double* agrad = new double[n * sizeof(double)];
+
+	int iter = 0;
+	double err_norm = 0.0, t = 0.0;
+	do
+	{ 
+		Gradient(x0, grad);
+		double sc1 = ScalarProduct(grad, grad, n) * 0.25;
+
+		VectorRight(x0, agrad);
+		double sc2 = 2.0 * ScalarProduct(grad, agrad, n);
+		t = sc1 / sc2;
+
+		for (int i = 0; i < n; i++)
+			*(x + i) = *(x0 + i) - t * *(grad + i);
+		// норма разности между значением на текущей и предыдущей итерации
+		for (int i = 0; i < n; i++)
+			*(errv + i) = *(x + i) - *(x0 + i);
+		err_norm = norm(errv, n);
+		if (++iter > MAX_ITERATION_NUMBER)
+		{
+			delete[] errv;
+			delete[] x0;
+			delete[] grad;
+			delete[] agrad;
+			return false;
+		}
+		memcpy(x0, x, n * sizeof(double));
+
+	} while (err_norm > DBL_EPSILON);
+	delete[] errv;
+	delete[] x0;
+	delete[] grad;
+	delete[] agrad;
 	return true;
 }

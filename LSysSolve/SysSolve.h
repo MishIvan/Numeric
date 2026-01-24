@@ -21,4 +21,5 @@ void QRDecompositionSolve(const double* A, const double* b, double* x, int n);
 void LUDecompositionSolve(const double* A, const double* b, double* x, int n);
 void LLTDecompositionSolve(const double* A, const double* b, double* x, int n);
 bool Relaxation(const double* A, const double* b, double* x, int n, double omega);
+bool GradientDescent(const double* A, const double* b, double* x, int n);
 bool RotationSolve(const double* A, const double* b, double* x, int n);

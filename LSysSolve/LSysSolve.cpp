@@ -58,7 +58,7 @@ void TestLinearSystemSolve2()
     int res_id = 0;
     std::string method_name;
 
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 8; i++)
     {
         //if ((n >= 30 && i == 5) || (n >=300 && i == 6)) continue;
         auto start = std::chrono::steady_clock::now();
@@ -118,6 +118,22 @@ void TestLinearSystemSolve2()
             }
 
             break;
+        case 7:
+            Anorm = new double[n * n * sizeof(double)];
+            bet = new double[n * sizeof(double)];
+            TransformLinearSystem(A, v, Anorm, bet, n);
+            conv = GradientDescent(Anorm, bet, x, n);
+            delete[] Anorm;
+            delete[] bet;
+            res_id = IDS_GRADIENT_DESCENT;
+            if (!conv)
+            {
+                method_name = GetResourceString(res_id);
+                std::string err_message = GetResourceString(IDS_EXCEED_MAX_NUMBER_ITERATION);
+                std::cout << method_name << ". " << err_message << std::endl;
+                continue;
+            }
+            break;
         }
 
         auto end = std::chrono::steady_clock::now();
@@ -168,7 +184,7 @@ void SparseTestSolve()
     std::cout << "Введите число уравнений СЛАУ: ";
     std::cin >> n;
 
-    std::cout << "Число внедиагональных элементов (1 - " << n-1 << "):";
+    std::cout << "Число внедиагональных элементов (1 - " << n-1 << "): ";
     std::cin >> p;
 
     srand(10);
@@ -203,6 +219,7 @@ void SparseTestSolve()
 
     }
 
+    std::cout << "Число уравнений: " << n << std::endl;
     double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
     std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
     
@@ -249,7 +266,7 @@ void SparseTestSolve()
 int main()
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
-    //TestLinearSystemSolve2();
-    SparseTestSolve();
+    TestLinearSystemSolve2();
+    //SparseTestSolve();
 }
 

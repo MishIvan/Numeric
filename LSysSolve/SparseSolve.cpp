@@ -11,7 +11,7 @@ using namespace std;
 /// <returns>ненулевое значение элемента, 0 - если элемент не найден</returns>
 double FindElement(const vector<SparseElement>& matrix,int _row, int _column)
 {
-	auto iter = find_if(matrix.begin(), matrix.end(),
+	auto iter = find_if( matrix.begin(), matrix.end(),
 		[_row,_column](const SparseElement &el) { return el.row == _row && el.column == _column; }
 	);
 	if (iter != matrix.end())
@@ -41,6 +41,23 @@ void SetValue(vector<SparseElement>& matrix, int _row, int _column, double _valu
 		SparseElement el{ _row,_column, _value };
 		matrix.push_back(el);
 	}
+}
+
+/// <summary>
+/// Транспонированную матрицу
+/// </summary>
+/// <param name="matrix">исходная матрица</param>
+/// <param name="n">порядок матрицы</param>
+/// <returns>транспонированну  matrix матрицу</returns>
+vector<SparseElement> Transpose(const vector<SparseElement>& matrix, int n)
+{
+	vector <SparseElement> result;
+	for (const auto elem : matrix)
+	{
+		SetValue(result, elem.column, elem.row, elem.value);		
+	}
+
+	return result;
 }
 
 /// <summary>
@@ -229,7 +246,7 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 
 		// T(k) = U*T(k-1), U - матрица вращения
 		T = T0;
-		// заполнение строк T(i0,k) и T(j0,k)
+		// заполнение строк T(i0,k) и T(j0,k)	
 		double t_i0 = 0.0, t_j0 = 0.0;
 		for (int k = 1; k <= n; k++)
 		{

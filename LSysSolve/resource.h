@@ -2,7 +2,6 @@
 // Включаемый файл, созданный в Microsoft Visual C++.
 // Используется LSysSolve.rc
 //
-#define IDS_ELEMENT_NOT_FOUND           101
 #define IDS_ZERO                        101
 #define IDS_EXCEED_MAX_NUMBER_ITERATION 102
 #define IDS_GAUSS                       103
@@ -13,6 +12,7 @@
 #define IDS_ROTATION                    108
 #define IDS_LU_DECOMPOSITION            109
 #define IDS_NOT_MATCHED                 110
+#define IDS_GRADIENT_DESCENT            111
 
 // Next default values for new objects
 // 
