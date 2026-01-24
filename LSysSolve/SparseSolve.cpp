@@ -9,7 +9,7 @@ using namespace std;
 /// <param name="_row">строка</param>
 /// <param name="_column">столбец</param>
 /// <returns>ненулевое значение элемента, 0 - если элемент не найден</returns>
-double FindElement(const vector<SparseElement>& matrix,int _row, int _column = 1)
+double FindElement(const vector<SparseElement>& matrix,int _row, int _column)
 {
 	auto iter = find_if(matrix.begin(), matrix.end(),
 		[_row,_column](const SparseElement &el) { return el.row == _row && el.column == _column; }
@@ -18,6 +18,29 @@ double FindElement(const vector<SparseElement>& matrix,int _row, int _column = 1
 		return iter->value;
 	else
 		return 0.0;
+} 
+
+/// <summary>
+/// Присвоить значение элемента матрицы: если найден - присвоить значение,
+/// если нет и значение ненулевое - создать элемент
+/// </summary>
+/// <param name="matrix">матрица или вектор</param>
+/// <param name="_row">строка</param>
+/// <param name="_column">столбец</param>
+/// <param name="_value">значение</param>
+void SetValue(vector<SparseElement>& matrix, int _row, int _column, double _value)
+{
+	auto iter = find_if(matrix.begin(), matrix.end(),
+		[_row, _column](const SparseElement& el) { return el.row == _row && el.column == _column; }
+	);
+	if (iter != matrix.end())
+		iter->value = _value;
+	else
+	{
+		if (abs(_value) <= DBL_MIN) return;
+		SparseElement el{ _row,_column, _value };
+		matrix.push_back(el);
+	}
 }
 
 /// <summary>
@@ -31,26 +54,20 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 {
 	map<int, map<int, double>> matrix;
 	vector <SparseElement> result;
+
 	for (const auto& el_first : first)
 	{
-		map<int, double> mrow;
-		if (matrix.count(el_first.row) == 0)
-			matrix[el_first.row] = mrow;
 		for(const auto& el_second : second)
 			if (el_first.column == el_second.row)
 			{
-				if (matrix[el_first.row].count(el_second.column) == 0)
-					matrix[el_first.row][el_second.column] = el_first.value * el_second.value;
-				else
-					matrix[el_first.row][el_second.column] += el_first.value * el_second.value;
+				matrix[el_first.row][el_second.column] += el_first.value * el_second.value;
 			}
 	}
 
 	for (const auto matrix_el : matrix)
 	{
-		map<int, double> mrow = matrix_el.second;
 		int row = matrix_el.first;
-		for (const auto& mrow_el : mrow)
+		for (const auto& mrow_el : matrix_el.second)
 		{
 			SparseElement res_el{ row, mrow_el.first, mrow_el.second };
 			result.push_back(res_el);
@@ -133,16 +150,6 @@ double ErrorMeasure(vector<SparseElement>& A,
 	SparseElement el;
 	ax = SparseMultiply(A, x);
 
-	for (const auto& elem_ax : ax)
-		cout << elem_ax.row  << '\t' << elem_ax.value << endl;
-	cout << "***" << endl;
-	for (const auto& elem_b : b)
-		cout << elem_b.row << '\t' << elem_b.value << endl;
-	cout << "***" << endl;
-	for (const auto& elem_x : x)
-		cout << elem_x.row << '\t' << elem_x.value << endl;
-
-
 	// A*x - b
 	for (int i = 1; i <= n; i++)
 	{
@@ -153,10 +160,6 @@ double ErrorMeasure(vector<SparseElement>& A,
 		el.value = val;
 		v_err.push_back(el);
 	}
-
-	//cout << "***" << endl;
-	//for (const auto& elem_err : v_err)
-	//	cout << elem_err.row << '\t' << elem_err.column << '\t' << elem_err.value << endl;
 
 	return SparseNormv(v_err);
 }
@@ -172,6 +175,7 @@ double ErrorMeasure(vector<SparseElement>& A,
 /// <returns>-1 - деление на ноль, нулевой элемент на главной диагонали
 /// -2 - число элементов в строке матрицы не совпадает с размерностью вектора
 /// или матрица не квадратная
+/// -3 - элемент не найден
 /// 0 - превышено максимальное число итераций, 
 /// 1 - решение завершено успешно</returns>
 int SparseRotationSolve(const vector<SparseElement>& A, 
@@ -208,13 +212,13 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 					return false;
 			}
 		); 
+
 		
 		j0 = iter->row;
 		i0 = iter->column;
 		val = iter->value;
-		
-		if (abs(val) < DBL_EPSILON) break;
 
+ 		if (abs(val) < DBL_EPSILON) break;
 		// угол матрицы вращения, находится по условию T(k-1)(j0, i0) = 0
 		double t2 = FindElement(T0, i0, i0);
 		if (t2 == 0.0) return -1;
@@ -227,27 +231,21 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		T = T0;
 		// заполнение строк T(i0,k) и T(j0,k)
 		double t_i0 = 0.0, t_j0 = 0.0;
-		int k = 0;
-		for (auto iter_t = T.begin(); iter_t != T.end(); ++iter_t)
-		{			
-			k = iter_t->column;
+		for (int k = 1; k <= n; k++)
+		{
+			// T0(i0,k)
+			t_i0 = FindElement(T0, i0, k);
 
-			if (iter_t->row == i0 || iter_t->row == j0)
-			{
-				// T0(i0,k)
-				t_i0 = FindElement(T0, i0, k);
-
-				// T0(j0,k)
-				t_j0 = FindElement(T0, j0, k);
-			}
+			// T0(j0,k)
+			t_j0 = FindElement(T0, j0, k);
 
 			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
-			if (iter_t->row == i0)
-				iter_t->value = t_i0 * cs + t_j0 * ss;
+			val = t_i0 * cs + t_j0 * ss;
+			SetValue(T, i0, k, val);
 
 			// T(j0,k) = -T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
-			if (iter_t->row == j0)
-				iter_t->value = -t_i0 * ss + t_j0 * cs;
+			val = -t_i0 * ss + t_j0 * cs;
+			SetValue(T, j0, k, val);
 		}
 
 		// bet(k) = U*bet(k-1)
@@ -287,7 +285,9 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		for (int j = i + 1; j <= n; j++)
 		{
 			tval = FindElement(T, i, j);
+			if (tval == 0) continue;
 			xval = FindElement(x, j);
+			if (xval == 0) continue;
 			val-= tval * xval;
 		}
 
