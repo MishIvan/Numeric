@@ -229,15 +229,14 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 					return false;
 			}
 		); 
-
 		
-		j0 = iter->row;
-		i0 = iter->column;
+		j0 = iter->column;
+		i0 = iter->row;
 		val = iter->value;
 
  		if (abs(val) < DBL_EPSILON) break;
-		// угол матрицы вращения, находится по условию T(k-1)(j0, i0) = 0
-		double t2 = FindElement(T0, i0, i0);
+		// угол матрицы вращения, находится по условию T(k-1)(i0, j0) = 0
+		double t2 = FindElement(T0, j0, j0);
 		if (t2 == 0.0) return -1;
 
 		double fi = atan(val / t2);
@@ -256,12 +255,12 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 			// T0(j0,k)
 			t_j0 = FindElement(T0, j0, k);
 
-			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
-			val = t_i0 * cs + t_j0 * ss;
+			// T(i0,k) = T0(i0,k)*cos(phi) - T0(j0,k)*sin(phi)
+			val = t_i0 * cs - t_j0 * ss;
 			SetValue(T, i0, k, val);
 
-			// T(j0,k) = -T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
-			val = -t_i0 * ss + t_j0 * cs;
+			// T(j0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
+			val = t_i0 * ss + t_j0 * cs;
 			SetValue(T, j0, k, val);
 		}
 
@@ -276,9 +275,9 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		for (auto iter_b = bet.begin(); iter_b != bet.end(); ++iter_b)
 		{
 			if (iter_b->row == i0)
-				iter_b->value = b_i0 * cs + b_j0 * ss;
+				iter_b->value = b_i0 * cs - b_j0 * ss;
 			if (iter_b->row == j0)
-				iter_b->value = -b_i0 * ss + b_j0 * cs;
+				iter_b->value = b_i0 * ss + b_j0 * cs;
 		}
 		// результаты для следующей итерации
 		T0 = T;

@@ -554,7 +554,6 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 
 	// верхняя тругольная матрица
 	double* T = new double[n * n * sizeof(double)]; // на текущей итерации
-	memcpy(T, A, n * n * sizeof(double));
 
 	double* T0 = new double[n * n * sizeof(double)]; // на предыдущей итерации
 	memcpy(T0, A, n * n * sizeof(double));
@@ -564,7 +563,6 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 	memcpy(bet0, b, n * sizeof(double));
 
 	double* bet = new double[n * sizeof(double)]; // на текущей итерации
-	memcpy(bet, b, n * sizeof(double));
 	int iter = 0;
 	while (true)
 	{
@@ -572,23 +570,21 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 		int i0 = 0, j0 = 0;
 		double val = 0.0, el = 0.0;
 		for (int i = 0; i < n; i++)
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j < i; j++)
 			{
-				if (i < j)
+				el = abs(*(T0 + i * n + j));
+				if (el > val)
 				{
-					el = abs(*(T + j * n + i));
-					if (el > val)
-					{
-						val = el;
-						i0 = i;
-						j0 = j;
-					}
+					val = el;
+					i0 = i;
+					j0 = j;
 				}
+				
 			}
 		if (val < DBL_EPSILON) break;
 		
-		// угол матрицы вращения, находится по условию T(k)(j0, i0) = 0
-		double fi = atan( *(T + j0 * n + i0) /  *(T + i0 * n + i0) );
+		// угол матрицы вращения, находится по условию T(k)(i0, j0) = 0
+		double fi = atan(*(T0 + i0 * n + j0) / *(T0 + j0 * n + j0));
 		double cs = cos(fi);
 		double ss = sin(fi);
 
@@ -598,15 +594,15 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 		memcpy(bet, bet0, n * sizeof(double));
 		for (int i = 0; i < n; i++)
 		{
-			*(T + i0 * n + i) = *(T0 + i0 * n + i) * cs +
+			*(T + i0 * n + i) = *(T0 + i0 * n + i) * cs -
 				*(T0 + j0 * n + i) * ss;
-			*(T + j0 * n + i) = (-1.0) * *(T0 + i0 * n + i) * ss +
+			*(T + j0 * n + i) = *(T0 + i0 * n + i) * ss +
 				*(T0 + j0 * n + i) * cs;
 		}
 
-		*(bet + i0) = *(bet0 + i0) * cs +
+		*(bet + i0) = *(bet0 + i0) * cs -
 			*(bet0 + j0) * ss;
-		*(bet + j0) = (-1.0) * *(bet0 + i0) * ss +
+		*(bet + j0) = *(bet0 + i0) * ss +
 			*(bet0 + j0) * cs;
 
 		// результаты для следующей итерации
@@ -634,7 +630,6 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 			*(x + i) -= *(T + i * n + j) * *(x + j);
 		*(x + i) /= *(T + i * n + i);
 	}
-
 
 	delete[] T;
 	delete[] bet;
