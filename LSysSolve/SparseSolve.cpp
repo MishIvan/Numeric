@@ -49,7 +49,7 @@ void SetValue(vector<SparseElement>& matrix, int _row, int _column, double _valu
 /// <param name="matrix">исходная матрица</param>
 /// <param name="n">порядок матрицы</param>
 /// <returns>транспонированну  matrix матрицу</returns>
-vector<SparseElement> Transpose(const vector<SparseElement>& matrix, int n)
+vector<SparseElement> SparseTranspose(const vector<SparseElement>& matrix)
 {
 	vector <SparseElement> result;
 	for (const auto elem : matrix)
@@ -93,6 +93,14 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 
 	return result;
 }
+
+map<int, map<int, double>> Matrix2Map(const vector<SparseElement> matrix)
+{
+	map<int, map<int, double>> result;
+	for (const auto elem : matrix)
+		result[elem.row][elem.column] = elem.value;
+	return result;
+}
 /// <summary>
 /// Вывод на консоль матрицы или вектора
 /// </summary>
@@ -110,6 +118,13 @@ void PrintMatrix(vector<SparseElement> matrix, int n)
 		cout << endl;
 	}
 }
+
+double SparseScalarProduct(const vector<SparseElement>& vect1,
+	const vector<SparseElement>& vect2)
+{
+	vector<SparseElement> value = SparseMultiply(SparseTranspose(vect1), vect2);
+	return value[0].value;
+}
 /// <summary>
 /// Евклидова (сферическая норма) вектора
 /// </summary>
@@ -117,11 +132,7 @@ void PrintMatrix(vector<SparseElement> matrix, int n)
 /// <returns>значение нормы</returns>
 double SparseNormv(const vector<SparseElement>& vect) 
 {
-	double norm = 0.0;
-	for (const auto& elem : vect)
-		if(elem.column == 1)
-			norm += elem.value * elem.value;
-	return sqrt(norm);
+	return sqrt(SparseScalarProduct(vect, vect));
 }
 /// <summary>
 /// для сортировки матриц и векторов
@@ -189,12 +200,14 @@ double ErrorMeasure(vector<SparseElement>& A,
 /// <param name="b">вектор правой части СЛАУ</param>
 /// <param name="x">вектор решения СЛАУ</param>
 /// <param name="n">порядок матрицы и размерность вектора правой части</param>
-/// <returns>-1 - деление на ноль, нулевой элемент на главной диагонали
+/// <returns>
+/// -1 - деление на ноль, нулевой элемент на главной диагонали
 /// -2 - число элементов в строке матрицы не совпадает с размерностью вектора
 /// или матрица не квадратная
 /// -3 - элемент не найден
-/// 0 - превышено максимальное число итераций, 
-/// 1 - решение завершено успешно</returns>
+///   0 - превышено максимальное число итераций, 
+/// 1 - решение завершено успешно
+/// </returns>
 int SparseRotationSolve(const vector<SparseElement>& A, 
 						const vector<SparseElement>& b, 
 						vector<SparseElement>& x,
@@ -321,5 +334,84 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 	reverse(x.begin(), x.end());
 	T.clear();
 	bet.clear();	
+	return 1;
+}
+
+/// <summary>
+/// Решение системы уравнений A*x = b методом  релаксации
+/// для симметричной положительно определённой матрицы A
+/// </summary>
+/// <param name="A">матрица СЛАУ</param>
+/// <param name="b">вектор правой части</param>
+/// <param name="x">вектор решения СЛАУ</param>
+/// <param name="n">порядок матрицы A</param>
+/// <param name="omega">релаксационный множитель</param>
+/// <returns>
+///  1 - если сходимость была достигнута,
+/// -1 - элемент матрицы на главной диагонали равен нулю,
+///  0 - превышено максимальное число итераций
+/// </returns>
+int SparseRelaxation(vector<SparseElement>& A,
+					vector<SparseElement>& b, 
+					vector<SparseElement>& x, 
+					int n, double omega)
+{
+	// сортировать матрицу лексиографически и сортировать вектор правой части
+	// в порядке возрастания номеров элементов
+	if (!is_sorted(A.begin(), A.end(),
+		MatrixLexiograhicCompare))
+		sort(A.begin(), A.end(), MatrixLexiograhicCompare);
+
+	if (!is_sorted(b.begin(), b.end(), VectorCompare))
+		sort(b.begin(), b.end(), VectorCompare);
+
+	vector<SparseElement> x0 = b;
+	vector<SparseElement> errv;
+	map<int, map<int, double>> Amap;
+	Amap = Matrix2Map(A);
+
+	int iter = 0; // число итераций
+	double err_norm = 0.0; // погрешность
+	do
+	{		
+		double sum = 0.0, val_d = 0.0;
+
+		for (const auto elem_a : Amap)
+		{	
+			map<int,double> Arow = elem_a.second;
+			double sum = 0.0;
+			int row = elem_a.first;
+			
+			for (const auto elem_x : x)
+			{
+				if (elem_x.row <= row - 1 && Arow.count(elem_x.row) > 0)
+					sum += Arow[elem_x.row] * elem_x.value;
+			}
+
+			for (const auto elem_x : x0)
+			{ 
+				if (elem_x.row >= row && Arow.count(elem_x.row) > 0)
+					sum += Arow[elem_x.row] * elem_x.value;
+			}
+
+			if (Arow.count(row) == 0) return -1;
+			double val_d = Arow[row];	
+			double val = FindElement(x0, row) - omega * (sum - FindElement(b, row)) / val_d;
+			SetValue(x, row, 1, val);
+		}
+
+
+		// норма разности между значением на текущей и предыдущей итерации
+		for (int k = 1; k <=n; k++)
+			SetValue(errv, k, 1, FindElement(x, k) - FindElement(x0, k));
+		err_norm = SparseNormv(errv);
+		if (++iter > MAX_ITERATION_NUMBER) return 0;
+
+		if (!is_sorted(x.begin(), x.end(), VectorCompare))
+			sort(x.begin(), x.end(), VectorCompare);
+		x0 = x;
+
+	} while (err_norm > DBL_EPSILON);
+
 	return 1;
 }

@@ -14,9 +14,17 @@ struct SparseElement
 
 double FindElement(const std::vector<SparseElement>& matrix, int _row, int _column = 1);
 void PrintMatrix(std::vector<SparseElement> matrix, int n);
+std::vector<SparseElement> SparseTranspose(const std::vector<SparseElement>& matrix);
+std::vector <SparseElement> SparseMultiply(const std::vector<SparseElement>& first,
+	const std::vector<SparseElement>& second);
+
 int SparseRotationSolve(const std::vector<SparseElement>& A,
 	const std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x, int n);
+int SparseRelaxation(std::vector<SparseElement>& A,
+	std::vector<SparseElement>& b,
+	std::vector<SparseElement>& x,
+	int n, double omega);
 double ErrorMeasure(std::vector<SparseElement>& A,
 	std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x, int n);

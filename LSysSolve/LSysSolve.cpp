@@ -190,7 +190,7 @@ void SparseTestSolve()
     srand(10);
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     // для разреженных матриц и векторов нумерация элементов начинается с 1
-    std::vector<SparseElement> A, v, x;
+    std::vector<SparseElement> A, v, x, At;
     for (int i = 1; i <= n; i++)
     {
         SparseElement sp_el{ i , i , rand_range(-1.0e3, 1.0e3) };
@@ -233,7 +233,7 @@ void SparseTestSolve()
     std::string method_name;
     std::vector<SparseElement> Anorm, bet;
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 2; i++)
     {
         auto start = std::chrono::steady_clock::now();
         switch (i)
@@ -251,6 +251,23 @@ void SparseTestSolve()
             }
 
             break;
+        case 1:
+            At.clear();
+            Anorm.clear();
+            bet.clear();
+            At = SparseTranspose(A);
+            Anorm = SparseMultiply(At, A);
+            bet = SparseMultiply(At, v);
+            res_id = IDS_RELAXATION;
+            conv = SparseRelaxation(Anorm, bet, x, n, 0.9);
+            if (conv < 1)
+            {
+                method_name = GetResourceString(res_id);
+                std::string err_message = GetErrorMessage(conv);
+                std::cout << method_name << ". " << err_message << std::endl;
+                continue;
+            }
+            break;
         }
 
         auto end = std::chrono::steady_clock::now();
@@ -266,7 +283,7 @@ void SparseTestSolve()
 int main()
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
-    TestLinearSystemSolve2();
-    //SparseTestSolve();
+    //TestLinearSystemSolve2();
+    SparseTestSolve();
 }
 
