@@ -94,6 +94,45 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 	return result;
 }
 
+/// <summary>
+/// Разность двух матриц first и second
+/// </summary>
+/// <param name="first">разреженная матрица</param>
+/// <param name="second">разреженная матрица</param>
+/// <returns>разреженную матрицу first - second</returns>
+vector<SparseElement> SparseDifference(const vector<SparseElement>& first,
+	const vector<SparseElement>& second)
+{
+	map<int, map<int, double>> buffer;
+	vector<SparseElement> result;
+	for (const auto elem_first : first)
+	{
+		buffer[elem_first.row][elem_first.column] += elem_first.value;
+		for (const auto elem_second : second)
+		{
+			map<int, double> second_row = buffer[elem_second.row];
+			int count = second_row.count(elem_second.column);
+			if(count == 0) 
+				buffer[elem_second.row][elem_second.column] -= elem_second.value;
+			else if(count > 0 && elem_first.row == elem_second.row && elem_first.column == elem_second.column)
+				buffer[elem_second.row][elem_second.column] = elem_first.value - elem_second.value;
+		}
+	}
+	
+	for (const auto buffer_el : buffer)
+	{
+		int row = buffer_el.first;
+		for (const auto& mrow_el : buffer_el.second)
+		{
+			if (abs(mrow_el.second) <= DBL_MIN) continue;
+			SparseElement res_el{ row, mrow_el.first, mrow_el.second };
+			result.push_back(res_el);
+		}
+	}
+
+	return result;
+}
+
 map<int, map<int, double>> Matrix2Map(const vector<SparseElement> matrix)
 {
 	map<int, map<int, double>> result;
@@ -157,39 +196,15 @@ bool VectorCompare(const SparseElement& one, const SparseElement& two)
 /// <param name="A">разреженная матрица СЛАУ</param>
 /// <param name="b">вектор правой части</param>
 /// <param name="x">полученное решение СЛАУ</param>
-/// <param name="n">порядок матрицы и размерность вектора правой части</param>
 /// <returns>погрешность</returns>
-double ErrorMeasure(vector<SparseElement>& A, 
-					vector<SparseElement>& b, 
-					vector<SparseElement>& x,
-					int n)
+double ErrorMeasure(const vector<SparseElement>& A, 
+					const vector<SparseElement>& b, 
+					const vector<SparseElement>& x)
 {
-	vector <SparseElement> ax, v_err;
-	if(!is_sorted(A.begin(), A.end(), 
-		MatrixLexiograhicCompare))
-	sort(A.begin(), A.end(), MatrixLexiograhicCompare);
-
-	if(!is_sorted(x.begin(), x.end(), VectorCompare))
-		sort(x.begin(), x.end(), VectorCompare);
-	if (!is_sorted(b.begin(), b.end(), VectorCompare))
-		sort(b.begin(), b.end(), VectorCompare);
-
 	// A*x
-	SparseElement el;
-	ax = SparseMultiply(A, x);
+	vector <SparseElement> ax = SparseMultiply(A, x);
 
-	// A*x - b
-	for (int i = 1; i <= n; i++)
-	{
-		double val = FindElement(ax, i) - FindElement(b, i);
-		if (abs(val) <= DBL_MIN) continue;
-		el.row = i;
-		el.column = 1;
-		el.value = val;
-		v_err.push_back(el);
-	}
-
-	return SparseNormv(v_err);
+	return SparseNormv(SparseDifference(ax, b));
 }
 
 /// <summary>
@@ -365,8 +380,8 @@ int SparseRelaxation(vector<SparseElement>& A,
 	if (!is_sorted(b.begin(), b.end(), VectorCompare))
 		sort(b.begin(), b.end(), VectorCompare);
 
-	vector<SparseElement> x0 = b;
-	vector<SparseElement> errv;
+	vector<SparseElement> x0;
+	x0.push_back({ 1, 1, 1.0 });
 	map<int, map<int, double>> Amap;
 	Amap = Matrix2Map(A);
 
@@ -402,9 +417,7 @@ int SparseRelaxation(vector<SparseElement>& A,
 
 
 		// норма разности между значением на текущей и предыдущей итерации
-		for (int k = 1; k <=n; k++)
-			SetValue(errv, k, 1, FindElement(x, k) - FindElement(x0, k));
-		err_norm = SparseNormv(errv);
+		err_norm = SparseNormv(SparseDifference(x, x0));
 		if (++iter > MAX_ITERATION_NUMBER) return 0;
 
 		if (!is_sorted(x.begin(), x.end(), VectorCompare))

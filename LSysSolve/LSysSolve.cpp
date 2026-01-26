@@ -193,32 +193,24 @@ void SparseTestSolve()
     std::vector<SparseElement> A, v, x, At;
     for (int i = 1; i <= n; i++)
     {
-        SparseElement sp_el{ i , i , rand_range(-1.0e3, 1.0e3) };
-        A.push_back(sp_el);
-        int j = 1;
-        while (j <= p)
+        A.push_back({ i , i , rand_range(-1.0e3, 1.0e3) });
+        int k = 1;
+        for(int j = 1; j <= (p >> 1); j++)
         {
-            if (i - j > 0)
-            {
-                sp_el.row = i;
-                sp_el.column = i - j;
-                sp_el.value = rand_range(-1.0e3, 1.0e3);
-                A.push_back(sp_el);
-            }
+            if (i - k > 0 && k <= (p << 1))
+                A.push_back({ i , i - k , rand_range(-1.0e3, 1.0e3) });
 
-            if (i + j <= n)
-            {
-                sp_el.column = i + j;
-                sp_el.value = rand_range(-1.0e3, 1.0e3);
-                A.push_back(sp_el);
-            }
+            if (k <= (p >> 1) && i + k <= n)
+                A.push_back({ i , i + k , rand_range(-1.0e3, 1.0e3) });
 
-            j++;
-            
+            k++;
         }
 
     }
 
+    //for (const auto elem : A)
+    //    std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
+    // PrintMatrix(A, n);
     std::cout << "Число уравнений: " << n << std::endl;
     double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
     std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
@@ -259,7 +251,7 @@ void SparseTestSolve()
             Anorm = SparseMultiply(At, A);
             bet = SparseMultiply(At, v);
             res_id = IDS_RELAXATION;
-            conv = SparseRelaxation(Anorm, bet, x, n, 0.9);
+            conv = SparseRelaxation(Anorm, bet, x, n, 1.5);
             if (conv < 1)
             {
                 method_name = GetResourceString(res_id);
@@ -275,7 +267,7 @@ void SparseTestSolve()
         std::chrono::duration<double> secs = duration;
 
         method_name = GetResourceString(res_id);
-        std::cout << method_name << '\t' << secs.count() << '\t' << ErrorMeasure(A, v, x, n) << std::endl;
+        std::cout << method_name << '\t' << secs.count() << '\t' << ErrorMeasure(A, v, x) << std::endl;
 
 
     }
