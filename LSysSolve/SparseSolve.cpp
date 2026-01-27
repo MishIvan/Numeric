@@ -52,7 +52,7 @@ void SetValue(vector<SparseElement>& matrix, int _row, int _column, double _valu
 vector<SparseElement> SparseTranspose(const vector<SparseElement>& matrix)
 {
 	vector <SparseElement> result;
-	for (const auto elem : matrix)
+	for (const auto& elem : matrix)
 	{
 		SetValue(result, elem.column, elem.row, elem.value);		
 	}
@@ -81,7 +81,7 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 			}
 	}
 
-	for (const auto matrix_el : matrix)
+	for (const auto& matrix_el : matrix)
 	{
 		int row = matrix_el.first;
 		for (const auto& mrow_el : matrix_el.second)
@@ -104,29 +104,21 @@ vector<SparseElement> SparseDifference(const vector<SparseElement>& first,
 	const vector<SparseElement>& second)
 {
 	map<int, map<int, double>> buffer;
-	vector<SparseElement> result;
-	for (const auto elem_first : first)
-	{
-		buffer[elem_first.row][elem_first.column] += elem_first.value;
-		for (const auto elem_second : second)
-		{
-			map<int, double> second_row = buffer[elem_second.row];
-			int count = second_row.count(elem_second.column);
-			if(count == 0) 
-				buffer[elem_second.row][elem_second.column] -= elem_second.value;
-			else if(count > 0 && elem_first.row == elem_second.row && elem_first.column == elem_second.column)
-				buffer[elem_second.row][elem_second.column] = elem_first.value - elem_second.value;
-		}
-	}
 	
-	for (const auto buffer_el : buffer)
+	for (const auto& elem_first : first)
+		buffer[elem_first.row][elem_first.column]  = elem_first.value;
+	for (const auto& elem_second : second)
+		buffer[elem_second.row][elem_second.column] -= elem_second.value;
+
+	vector<SparseElement> result;
+	
+	for (const auto& buffer_el : buffer)
 	{
 		int row = buffer_el.first;
 		for (const auto& mrow_el : buffer_el.second)
 		{
 			if (abs(mrow_el.second) <= DBL_MIN) continue;
-			SparseElement res_el{ row, mrow_el.first, mrow_el.second };
-			result.push_back(res_el);
+			result.push_back({ row, mrow_el.first, mrow_el.second });
 		}
 	}
 
@@ -136,7 +128,7 @@ vector<SparseElement> SparseDifference(const vector<SparseElement>& first,
 map<int, map<int, double>> Matrix2Map(const vector<SparseElement> matrix)
 {
 	map<int, map<int, double>> result;
-	for (const auto elem : matrix)
+	for (const auto& elem : matrix)
 		result[elem.row][elem.column] = elem.value;
 	return result;
 }
@@ -391,19 +383,19 @@ int SparseRelaxation(vector<SparseElement>& A,
 	{		
 		double sum = 0.0, val_d = 0.0;
 
-		for (const auto elem_a : Amap)
+		for (const auto& elem_a : Amap)
 		{	
 			map<int,double> Arow = elem_a.second;
 			double sum = 0.0;
 			int row = elem_a.first;
 			
-			for (const auto elem_x : x)
+			for (const auto& elem_x : x)
 			{
 				if (elem_x.row <= row - 1 && Arow.count(elem_x.row) > 0)
 					sum += Arow[elem_x.row] * elem_x.value;
 			}
 
-			for (const auto elem_x : x0)
+			for (const auto& elem_x : x0)
 			{ 
 				if (elem_x.row >= row && Arow.count(elem_x.row) > 0)
 					sum += Arow[elem_x.row] * elem_x.value;
@@ -426,5 +418,65 @@ int SparseRelaxation(vector<SparseElement>& A,
 
 	} while (err_norm > DBL_EPSILON);
 
+	return 1;
+}
+
+/// <summary>
+/// Решение системы уравнений A*x = b методом градиентного спуска
+/// для симметричной положительно определённой матрицы A
+/// </summary>
+/// <param name="A">матрица СЛАУ</param>
+/// <param name="b">вектор правой части</param>
+/// <param name="x">вектор решения СЛАУ</param>
+/// <returns>
+///  1 - если сходимость была достигнута,
+///  0 - превышено максимальное число итераций
+/// </returns>
+int SparseGradientDescent(const vector<SparseElement>& A, 
+	const vector<SparseElement>& b, 
+	vector<SparseElement>& x)
+{
+
+	// градиент: 2*(Ax0 - b)
+	auto Gradient = [A, b](const vector<SparseElement>& x)
+		{		
+			vector<SparseElement> result = SparseDifference(SparseMultiply(A, x), b);
+			for (auto& elem : result)
+				elem.value *= 2.0;
+			return result;
+		};
+
+	// A*(Ax0 - b)
+	auto VectorRight = [A, b](const vector<SparseElement>& x)
+		{
+			vector<SparseElement> ax = SparseDifference(SparseMultiply(A, x), b);
+			vector<SparseElement> result = SparseMultiply(A, ax);
+			return result;
+		};
+
+	vector<SparseElement> x0;
+	x0.push_back({ 1, 1, 1.0 });
+	vector<SparseElement> grad;
+
+	int iter = 0;
+	double err_norm = 0.0, t = 0.0;
+	do
+	{
+		grad = Gradient(x0);
+		double sc1 = SparseScalarProduct(grad, grad) * 0.25;
+
+		double sc2 = SparseScalarProduct(grad, VectorRight(x0));
+		t = sc1 / sc2;
+
+		for (auto& elem : grad)
+			elem.value *= t;
+
+		x = SparseDifference(x0, grad);
+
+		// норма разности между значением на текущей и предыдущей итерации
+		err_norm = SparseNormv(SparseDifference(x, x0));
+		if (++iter > MAX_ITERATION_NUMBER) return 0;
+		x0 = x;
+	} while (err_norm > DBL_EPSILON);
 	return 1;
 }

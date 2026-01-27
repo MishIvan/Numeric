@@ -1,6 +1,7 @@
 ﻿#include "SysSolve.h"
 #include "SparseSolve.h"
 #include "resource.h"
+#include "LSysSolve.h"
 
 std::string LPWSTRToStdString(LPWSTR lpws) {
     if (!lpws) return "";
@@ -178,24 +179,25 @@ std::string GetErrorMessage(int ret_code)
     return GetResourceString(res_id);
 }
 
-void SparseTestSolve()
+/// <summary>
+/// Заполнение матрицы СЛАУ и вектора правой части эдементами
+/// </summary>
+/// <param name="n">число уравнений</param>
+/// <param name="A">матрица СЛАУ</param>
+/// <param name="b">вектор правой части СЛАУ</param>
+void FillData1(std::vector<SparseElement>& A, std::vector<SparseElement>& b, int n)
 {
-    int n = 0, p = 0;
-    std::cout << "Введите число уравнений СЛАУ: ";
-    std::cin >> n;
-
-    std::cout << "Число внедиагональных элементов (1 - " << n-1 << "): ";
+    int p = 0;
+    std::cout << "Число внедиагональных элементов (1 - " << n - 1 << "): ";
     std::cin >> p;
 
     srand(10);
-    // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
-    // для разреженных матриц и векторов нумерация элементов начинается с 1
-    std::vector<SparseElement> A, v, x, At;
+  
     for (int i = 1; i <= n; i++)
     {
         A.push_back({ i , i , rand_range(-1.0e3, 1.0e3) });
         int k = 1;
-        for(int j = 1; j <= (p >> 1); j++)
+        for (int j = 1; j <= (p >> 1); j++)
         {
             if (i - k > 0 && k <= (p << 1))
                 A.push_back({ i , i - k , rand_range(-1.0e3, 1.0e3) });
@@ -208,6 +210,22 @@ void SparseTestSolve()
 
     }
 
+    for (int i = 1; i <= n; i++)
+        b.push_back({ i , 1 , rand_range(-100.0, 200) });
+
+}
+
+void SparseTestSolve()
+{
+    int n = 0;
+    std::cout << " Число уравнений СЛАУ: ";
+    std::cin >> n;
+
+    // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
+    // для разреженных матриц и векторов нумерация элементов начинается с 1
+    std::vector<SparseElement> A, v, x, At;
+    FillData1(A, v, n);
+
     //for (const auto elem : A)
     //    std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
     // PrintMatrix(A, n);
@@ -215,17 +233,11 @@ void SparseTestSolve()
     double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
     std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
     
-    for (int i = 1; i <=n; i++)
-    {
-        SparseElement sp_el{ i , 1 , rand_range(-100.0, 200) };
-        v.push_back(sp_el);
-    }
-
     int conv = 0, res_id = 0;
     std::string method_name;
     std::vector<SparseElement> Anorm, bet;
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         auto start = std::chrono::steady_clock::now();
         switch (i)
@@ -260,6 +272,24 @@ void SparseTestSolve()
                 continue;
             }
             break;
+        case 2:
+            At.clear();
+            Anorm.clear();
+            bet.clear();
+            At = SparseTranspose(A);
+            Anorm = SparseMultiply(At, A);
+            bet = SparseMultiply(At, v);
+            res_id = IDS_GRADIENT_DESCENT;
+            conv = SparseGradientDescent(Anorm, bet, x);
+            if (conv < 1)
+            {
+                method_name = GetResourceString(res_id);
+                std::string err_message = GetErrorMessage(conv);
+                std::cout << method_name << ". " << err_message << std::endl;
+                continue;
+            }
+            break;
+
         }
 
         auto end = std::chrono::steady_clock::now();

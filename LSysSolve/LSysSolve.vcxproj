@@ -128,6 +128,7 @@
     <ClCompile Include="SysSolve.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LSysSolve.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SparseSolve.h" />
     <ClInclude Include="SysSolve.h" />
