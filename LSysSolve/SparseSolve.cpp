@@ -259,7 +259,7 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		double t2 = FindElement(T0, j0, j0);
 		if (t2 == 0.0) return -1;
 
-		double fi = atan(val / t2);
+		double fi = atan(-val / t2);
 		double cs = cos(fi);
 		double ss = sin(fi);
 
@@ -275,12 +275,12 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 			// T0(j0,k)
 			t_j0 = FindElement(T0, j0, k);
 
-			// T(i0,k) = T0(i0,k)*cos(phi) - T0(j0,k)*sin(phi)
-			val = t_i0 * cs - t_j0 * ss;
+			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
+			val = t_i0 * cs + t_j0 * ss;
 			SetValue(T, i0, k, val);
 
 			// T(j0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
-			val = t_i0 * ss + t_j0 * cs;
+			val = -t_i0 * ss + t_j0 * cs;
 			SetValue(T, j0, k, val);
 		}
 
@@ -295,9 +295,9 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		for (auto iter_b = bet.begin(); iter_b != bet.end(); ++iter_b)
 		{
 			if (iter_b->row == i0)
-				iter_b->value = b_i0 * cs - b_j0 * ss;
+				iter_b->value = b_i0 * cs + b_j0 * ss;
 			if (iter_b->row == j0)
-				iter_b->value = b_i0 * ss + b_j0 * cs;
+				iter_b->value = -b_i0 * ss + b_j0 * cs;
 		}
 		// результаты для следующей итерации
 		T0 = T;
@@ -351,7 +351,6 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 /// <param name="A">матрица СЛАУ</param>
 /// <param name="b">вектор правой части</param>
 /// <param name="x">вектор решения СЛАУ</param>
-/// <param name="n">порядок матрицы A</param>
 /// <param name="omega">релаксационный множитель</param>
 /// <returns>
 ///  1 - если сходимость была достигнута,
@@ -361,7 +360,7 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 int SparseRelaxation(vector<SparseElement>& A,
 					vector<SparseElement>& b, 
 					vector<SparseElement>& x, 
-					int n, double omega)
+					double omega)
 {
 	// сортировать матрицу лексиографически и сортировать вектор правой части
 	// в порядке возрастания номеров элементов
@@ -402,7 +401,7 @@ int SparseRelaxation(vector<SparseElement>& A,
 			}
 
 			if (Arow.count(row) == 0) return -1;
-			double val_d = Arow[row];	
+			double val_d = Amap[row][row];	
 			double val = FindElement(x0, row) - omega * (sum - FindElement(b, row)) / val_d;
 			SetValue(x, row, 1, val);
 		}

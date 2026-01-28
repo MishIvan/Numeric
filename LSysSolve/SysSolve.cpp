@@ -584,7 +584,7 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 		if (val < DBL_EPSILON) break;
 		
 		// угол матрицы вращения, находится по условию T(k)(i0, j0) = 0
-		double fi = atan(*(T0 + i0 * n + j0) / *(T0 + j0 * n + j0));
+		double fi = atan((-1.0) * *(T0 + i0 * n + j0) / *(T0 + j0 * n + j0));
 		double cs = cos(fi);
 		double ss = sin(fi);
 
@@ -594,15 +594,15 @@ bool RotationSolve(const double *A, const double *b, double *x, int n)
 		memcpy(bet, bet0, n * sizeof(double));
 		for (int i = 0; i < n; i++)
 		{
-			*(T + i0 * n + i) = *(T0 + i0 * n + i) * cs -
+			*(T + i0 * n + i) = *(T0 + i0 * n + i) * cs +
 				*(T0 + j0 * n + i) * ss;
-			*(T + j0 * n + i) = *(T0 + i0 * n + i) * ss +
+			*(T + j0 * n + i) = (-1.0) * *(T0 + i0 * n + i) * ss +
 				*(T0 + j0 * n + i) * cs;
 		}
 
-		*(bet + i0) = *(bet0 + i0) * cs -
+		*(bet + i0) = *(bet0 + i0) * cs +
 			*(bet0 + j0) * ss;
-		*(bet + j0) = *(bet0 + i0) * ss +
+		*(bet + j0) = (-1.0) * *(bet0 + i0) * ss +
 			*(bet0 + j0) * cs;
 
 		// результаты для следующей итерации

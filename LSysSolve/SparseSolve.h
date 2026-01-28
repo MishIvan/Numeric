@@ -28,7 +28,7 @@ int SparseRotationSolve(const std::vector<SparseElement>& A,
 int SparseRelaxation(std::vector<SparseElement>& A,
 	std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x,
-	int n, double omega);
+	double omega);
 int SparseGradientDescent(const std::vector<SparseElement>& A,
 	const std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x);

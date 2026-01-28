@@ -215,6 +215,34 @@ void FillData1(std::vector<SparseElement>& A, std::vector<SparseElement>& b, int
 
 }
 
+void FillData2(std::vector<SparseElement>& A, std::vector<SparseElement>& b, int n)
+{
+    int p = 0;
+    std::cout << "Число элементов выше главной диагонали (1 - " << n - 1 << "): ";
+    std::cin >> p;
+
+    srand(10);
+
+    for (int i = 1; i <= n; i++)
+    {
+        A.push_back({ i , i , rand_range(1.0e2, 1.0e3) });
+        int k = 1;
+        while(k <=p)
+        {
+            if (i + k > n) break;
+            double val = rand_range(-10.0, 10.0);
+            A.push_back({ i , i + k , val });
+            A.push_back({ i + k, i , val });
+            k++;
+        }
+
+    }
+
+    for (int i = 1; i <= n; i++)
+        b.push_back({ i , 1 , rand_range(-100.0, 200) });
+
+}
+
 void SparseTestSolve()
 {
     int n = 0;
@@ -227,8 +255,8 @@ void SparseTestSolve()
     FillData1(A, v, n);
 
     //for (const auto elem : A)
-    //    std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
-    // PrintMatrix(A, n);
+    //   std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
+    //PrintMatrix(A, n);
     std::cout << "Число уравнений: " << n << std::endl;
     double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
     std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
@@ -256,14 +284,11 @@ void SparseTestSolve()
 
             break;
         case 1:
-            At.clear();
-            Anorm.clear();
-            bet.clear();
             At = SparseTranspose(A);
             Anorm = SparseMultiply(At, A);
             bet = SparseMultiply(At, v);
             res_id = IDS_RELAXATION;
-            conv = SparseRelaxation(Anorm, bet, x, n, 1.5);
+            conv = SparseRelaxation(Anorm, bet, x, 1.9);
             if (conv < 1)
             {
                 method_name = GetResourceString(res_id);
@@ -273,9 +298,6 @@ void SparseTestSolve()
             }
             break;
         case 2:
-            At.clear();
-            Anorm.clear();
-            bet.clear();
             At = SparseTranspose(A);
             Anorm = SparseMultiply(At, A);
             bet = SparseMultiply(At, v);
