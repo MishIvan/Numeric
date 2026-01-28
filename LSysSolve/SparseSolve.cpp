@@ -362,15 +362,6 @@ int SparseRelaxation(vector<SparseElement>& A,
 					vector<SparseElement>& x, 
 					double omega)
 {
-	// сортировать матрицу лексиографически и сортировать вектор правой части
-	// в порядке возрастания номеров элементов
-	if (!is_sorted(A.begin(), A.end(),
-		MatrixLexiograhicCompare))
-		sort(A.begin(), A.end(), MatrixLexiograhicCompare);
-
-	if (!is_sorted(b.begin(), b.end(), VectorCompare))
-		sort(b.begin(), b.end(), VectorCompare);
-
 	vector<SparseElement> x0;
 	x0.push_back({ 1, 1, 1.0 });
 	map<int, map<int, double>> Amap;
@@ -415,7 +406,7 @@ int SparseRelaxation(vector<SparseElement>& A,
 			sort(x.begin(), x.end(), VectorCompare);
 		x0 = x;
 
-	} while (err_norm > DBL_EPSILON);
+	} while (err_norm > DBL_EPSILON*100);
 
 	return 1;
 }

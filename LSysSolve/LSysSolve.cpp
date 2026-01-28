@@ -225,14 +225,14 @@ void FillData2(std::vector<SparseElement>& A, std::vector<SparseElement>& b, int
 
     for (int i = 1; i <= n; i++)
     {
-        A.push_back({ i , i , rand_range(1.0e2, 1.0e3) });
+        A.push_back({ i , i , rand_range(1.0e1, 1.0e3) });
         int k = 1;
         while(k <=p)
         {
             if (i + k > n) break;
-            double val = rand_range(-10.0, 10.0);
-            A.push_back({ i , i + k , val });
-            A.push_back({ i + k, i , val });
+            double val = rand_range(-100.0, 100.0);
+            A.push_back({ i , i + k , val / n });
+            A.push_back({ i + k, i , val / n });
             k++;
         }
 
@@ -252,7 +252,7 @@ void SparseTestSolve()
     // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
     // для разреженных матриц и векторов нумерация элементов начинается с 1
     std::vector<SparseElement> A, v, x, At;
-    FillData1(A, v, n);
+    FillData2(A, v, n);
 
     //for (const auto elem : A)
     //   std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
@@ -284,11 +284,11 @@ void SparseTestSolve()
 
             break;
         case 1:
-            At = SparseTranspose(A);
-            Anorm = SparseMultiply(At, A);
-            bet = SparseMultiply(At, v);
+            //At = SparseTranspose(A);
+            //Anorm = SparseMultiply(At, A);
+            //bet = SparseMultiply(At, v);
             res_id = IDS_RELAXATION;
-            conv = SparseRelaxation(Anorm, bet, x, 1.9);
+            conv = SparseRelaxation(A, v, x, 1.9);
             if (conv < 1)
             {
                 method_name = GetResourceString(res_id);
@@ -298,11 +298,11 @@ void SparseTestSolve()
             }
             break;
         case 2:
-            At = SparseTranspose(A);
-            Anorm = SparseMultiply(At, A);
-            bet = SparseMultiply(At, v);
+            //At = SparseTranspose(A);
+            //Anorm = SparseMultiply(At, A);
+            //bet = SparseMultiply(At, v);
             res_id = IDS_GRADIENT_DESCENT;
-            conv = SparseGradientDescent(Anorm, bet, x);
+            conv = SparseGradientDescent(A, v, x);
             if (conv < 1)
             {
                 method_name = GetResourceString(res_id);
