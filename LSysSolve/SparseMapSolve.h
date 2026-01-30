@@ -16,4 +16,6 @@ int SparseRelaxation(const std::map<int, std::map<int, double>>& A,
 	const std::map<int, double>& b,
 	std::map<int, double>& x,
 	double omega);
-
+int SparseGradientDescent(const std::map<int, std::map<int, double>>& A,
+	const std::map<int, double>& b,
+	std::map<int, double>& x);

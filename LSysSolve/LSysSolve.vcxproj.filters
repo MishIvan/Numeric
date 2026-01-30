@@ -24,9 +24,6 @@
     <ClCompile Include="SparseSolve.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="SparseMapSolve.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SysSolve.h">
@@ -39,9 +36,6 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="LSysSolve.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
-    <ClInclude Include="SparseMapSolve.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,8 +1,12 @@
 #pragma once
+#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <iterator>
 #include <map>
+
+#define MAX_ITERATION_NUMBER 60000
+#define EPS 1.0e-15
 
 // элемент матрицы
 struct SparseElement
@@ -12,7 +16,7 @@ struct SparseElement
 	double value; // значение
 };
 
-double FindElement(const std::vector<SparseElement>& matrix, int _row, int _column = 1);
+double GetValue(const std::vector<SparseElement>& matrix, int _row, int _column = 1);
 void PrintMatrix(std::vector<SparseElement> matrix, int n);
 std::vector<SparseElement> SparseTranspose(const std::vector<SparseElement>& matrix);
 std::vector <SparseElement> SparseMultiply(const std::vector<SparseElement>& first,
@@ -25,8 +29,8 @@ double ErrorMeasure(const std::vector<SparseElement>& A,
 int SparseRotationSolve(const std::vector<SparseElement>& A,
 	const std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x, int n);
-int SparseRelaxation(std::vector<SparseElement>& A,
-	std::vector<SparseElement>& b,
+int SparseRelaxation(const std::vector<SparseElement>& A,
+	const std::vector<SparseElement>& b,
 	std::vector<SparseElement>& x,
 	double omega);
 int SparseGradientDescent(const std::vector<SparseElement>& A,

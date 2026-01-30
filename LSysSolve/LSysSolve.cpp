@@ -1,5 +1,6 @@
 ﻿#include "SysSolve.h"
 #include "SparseSolve.h"
+//#include "SparseMapSolve.h"
 #include "resource.h"
 #include "LSysSolve.h"
 
@@ -243,6 +244,35 @@ void FillData2(std::vector<SparseElement>& A, std::vector<SparseElement>& b, int
 
 }
 
+void FillData2(std::map<int,std::map<int,double>>& A, std::map<int, double>& b, int n)
+{
+    int p = 0;
+    std::cout << "Число элементов выше главной диагонали (1 - " << n - 1 << "): ";
+    std::cin >> p;
+
+    srand(10);
+
+    for (int i = 1; i <= n; i++)
+    {
+        A[i][i] = rand_range(1.0e1, 1.0e3);
+        int k = 1;
+        while (k <= p)
+        {
+            if (i + k > n) break;
+            double val = rand_range(-100.0, 100.0);
+            A[i][i + k] = val / n;
+            A[i + k][i] = val / n;
+            k++;
+        }
+
+    }
+
+    for (int i = 1; i <= n; i++)
+        b[i] = rand_range(-100.0, 200);
+
+}
+
+
 void SparseTestSolve()
 {
     int n = 0;
@@ -288,7 +318,7 @@ void SparseTestSolve()
             //Anorm = SparseMultiply(At, A);
             //bet = SparseMultiply(At, v);
             res_id = IDS_RELAXATION;
-            conv = SparseRelaxation(A, v, x, 1.9);
+            conv = SparseRelaxation(A, v, x, 0.9);
             if (conv < 1)
             {
                 method_name = GetResourceString(res_id);
@@ -324,6 +354,89 @@ void SparseTestSolve()
 
     }
 }
+
+//void SparseTestSolveM()
+//{
+//    int n = 0;
+//    std::cout << " Число уравнений СЛАУ: ";
+//    std::cin >> n;
+//
+//    // заполнение матрицы коэффициентов СЛАУ и вектора правой части с помощью генерации случайных чисел
+//    // для разреженных матриц и векторов нумерация элементов начинается с 1
+//    std::map<int,std::map<int,double>> A, At, Anorm;
+//    std::map<int, double> v, x, bet;
+//    FillData2(A, v, n);
+//
+//    //for (const auto elem : A)
+//    //   std::cout << elem.row << '\t' << elem.column << '\t' << elem.value << std::endl;
+//    //PrintMatrix(A, n);
+//    std::cout << "Число уравнений: " << n << std::endl;
+//    double fullness_degree = (double)A.size() * 100.0 / (double)(n * n);
+//    std::cout << "Степень заполнения матрицы: " << fullness_degree << " %" << std::endl;
+//
+//    int conv = 0, res_id = 0;
+//    std::string method_name;
+//
+//    for (int i = 0; i < 3; i++)
+//    {
+//        auto start = std::chrono::steady_clock::now();
+//        switch (i)
+//        {
+//        case 0:
+//
+//            conv = SparseRotationSolve(A, v, x, n);
+//            res_id = IDS_ROTATION;
+//            if (conv < 1)
+//            {
+//                method_name = GetResourceString(res_id);
+//                std::string err_message = GetErrorMessage(conv);
+//                std::cout << method_name << ". " << err_message << std::endl;
+//                continue;
+//            }
+//
+//            break;
+//        case 1:
+//            //At = SparseTranspose(A);
+//            //Anorm = SparseMultiply(At, A);
+//            //bet = SparseMultiply(At, v);
+//            res_id = IDS_RELAXATION;
+//            conv = SparseRelaxation(A, v, x, 1.9);
+//            if (conv < 1)
+//            {
+//                method_name = GetResourceString(res_id);
+//                std::string err_message = GetErrorMessage(conv);
+//                std::cout << method_name << ". " << err_message << std::endl;
+//                continue;
+//            }
+//            break;
+//        case 2:
+//            //At = SparseTranspose(A);
+//            //Anorm = SparseMultiply(At, A);
+//            //bet = SparseMultiply(At, v);
+//            res_id = IDS_GRADIENT_DESCENT;
+//            conv = SparseGradientDescent(A, v, x);
+//            if (conv < 1)
+//            {
+//                method_name = GetResourceString(res_id);
+//                std::string err_message = GetErrorMessage(conv);
+//                std::cout << method_name << ". " << err_message << std::endl;
+//                continue;
+//            }
+//            break;
+//
+//        }
+//
+//        auto end = std::chrono::steady_clock::now();
+//        auto duration = end - start;
+//        std::chrono::duration<double> secs = duration;
+//
+//        method_name = GetResourceString(res_id);
+//        std::cout << method_name << '\t' << secs.count() << '\t' << ErrorMeasure(A, v, x) << std::endl;
+//
+//
+//    }
+//}
+
 int main()
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы

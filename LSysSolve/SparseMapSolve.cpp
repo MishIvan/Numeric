@@ -32,14 +32,12 @@ map<int, double> SparseMultiply(const map<int, map<int, double>>& first,
 	map<int, double> result;
 
 	for (const auto& elem_row_first : first)
-	{
-		map<int, double> row_first = elem_row_first.second;
-		for (const auto& elem_column_first : row_first)
-
+		for (const auto& elem_column_first : elem_row_first.second)
+		{
 			for (const auto& elem_second : second)
 				if (elem_second.first == elem_column_first.first)
 					result[elem_row_first.first] += elem_column_first.second * elem_second.second;
-	}
+		}
 
 	return result;
 }
@@ -142,24 +140,33 @@ double ErrorMeasure(const map<int,map<int, double>>& A,
 }
 
 /// <summary>
-/// Найден ли элемент матрицы (row,column)
+/// Найти и возвратить значение элемента (row,column)
 /// </summary>
 /// <param name="matrix"></param>
 /// <param name="row">строка</param>
 /// <param name="column">столбец</param>
-/// <returns>true - элемент найден, false - иначе</returns>
-bool Find(const map<int, map<int, double>>& matrix, int row, int column)
+/// <returns>ненулевое значение элемента - элемент найден, 0 - иначе</returns>
+double GetValue(const map<int, map<int, double>>& matrix, int row, int column)
 {
-	map<int, map<int, double>>::const_iterator iter = matrix.find(row);
+	
+	auto iter = matrix.find(row);
 	if (iter != matrix.end())
 	{
 		map<int, double> matrix_row = iter->second;
-		return matrix_row.count(column) > 0;
+		auto iter_row = matrix_row.find(column);
+		return (iter_row != matrix_row.end() ? iter_row->second : 0.0);
 	}
 	else
-		return false;
+		return 0.0;
 		
 }
+
+double GetValue(const map<int, double>& vect, int row)
+{
+	auto iter = vect.find(row);
+	return (iter != vect.end() ? iter->second : 0.0);
+};
+
 
 /// <summary>
 /// Решение СЛАУ методом вращения c разреженной матрицей, решение сводится
@@ -192,7 +199,7 @@ int SparseRotationSolve(const map<int, map<int, double>>& A,
 
 	map<int, double> bet; // на текущей итерации
 
-	double val = 0;
+	double val = 0, t1 = 0.0;
 	int i0 = 0, j0 = 0;
 	int iter_num = 0; // число итерации, ограничивается максимальным числом итераций
 	while (true)
@@ -201,60 +208,57 @@ int SparseRotationSolve(const map<int, map<int, double>>& A,
 		i0 = j0 = 0;
 		val = 0.0;
 		for (const auto& elem_row : T0)
-		{
-			map<int, double> vect_column = elem_row.second;
-			for (const auto& elem_column : vect_column)
-			{
-				double el = abs(elem_column.second);
-				if (elem_row.first > elem_column.first && el > val)
+			for (const auto& elem_column : elem_row.second)
+				if (elem_row.first > elem_column.first)
 				{
-					i0 = elem_row.first;
-					j0 = elem_column.first;
-					val = el;
+					double el = abs(elem_column.second);
+					if (el > val)
+					{
+						i0 = elem_row.first;
+						j0 = elem_column.first;
+						val = el;
+						t1 = elem_column.second;
+					}
 				}
 
-			}
-		}
-		
-		val = T0[i0][j0];
+		if (val < DBL_EPSILON) break;
 
-		if (abs(val) < DBL_EPSILON) break;
-		// угол матрицы вращения, находится по условию T(k-1)(i0, j0) = 0
-		double t2 = Find(T0, j0, j0) ? T0[j0][j0] : 0.0;
+		// угол матрицы вращения, находится по условию T(k)(i0, j0) = 0
+		double t2 = GetValue(T0, j0, j0);
 		if (t2 == 0.0) return -1;
 
-		double fi = atan(-val / t2);
+		double fi = atan(-t1 / t2);
 		double cs = cos(fi);
 		double ss = sin(fi);
 
-		// T(k) = U*T(k-1), U - матрица вращения
+		// T(k) = U(k)*T(k-1), U(k) - матрица вращения
 		T = T0;
 		// заполнение строк T(i0,k) и T(j0,k)	
 		double t_i0 = 0.0, t_j0 = 0.0;
 		for (int k = 1; k <= n; k++)
 		{
 			// T0(i0,k)
-			t_i0 = Find(T0, i0, k) ? T0[i0][k] : 0.0;
+			t_i0 = GetValue(T0, i0, k);
 
 			// T0(j0,k)
-			t_j0 = Find(T0, j0, k) ? T0[j0][k] : 0.0;
+			t_j0 = GetValue(T0, j0, k);
 
 			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
 			val = t_i0 * cs + t_j0 * ss;
 			if(val != 0.0) T[i0][k] = val;
 
-			// T(j0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
+			// T(j0,k) = -T0(i0,k)*sin(phi) + T0(j0,k)*cos(phi)
 			val = -t_i0 * ss + t_j0 * cs;
 			if (val != 0.0) T[j0][k] = val;
 		}
 
-		// bet(k) = U*bet(k-1)
+		// bet(k) = U(k)*bet(k-1)
 		bet = bet0;
 		// b0(i0)
-		double b_i0 = bet0.count(i0) > 0 ? bet0[i0] : 0.0;
+		double b_i0 = GetValue(bet0, i0);
 
 		// b0(j0)
-		double b_j0 = bet0.count(j0) > 0 ? bet0[j0] : 0.0;
+		double b_j0 = GetValue(bet0, j0);
 
 		val = b_i0 * cs + b_j0 * ss;
 		if (val != 0.0)
@@ -278,19 +282,19 @@ int SparseRotationSolve(const map<int, map<int, double>>& A,
 
 	for (int i = n; i >= 1; i--)
 	{
-		val = bet.count(i) > 0 ? bet[i] : 0;
+		val = GetValue(bet, i);
 
 		double tval = 0.0, xval = 0.0;
 		for (int j = i + 1; j <= n; j++)
 		{
-			tval = Find(T, i, j) ? T[i][j] : 0;
+			tval = GetValue(T, i, j);
 			if (tval == 0) continue;
-			xval = x.count(j) > 0 ? x[j] : 0;
+			xval = GetValue(x, j);
 			if (xval == 0) continue;
 			val -= tval * xval;
 		}
 
-		tval = Find(T, i, i);
+		tval = GetValue(T, i, i);
 		if (abs(tval) <= DBL_MIN) return -1;
 
 		if (abs(val) <= DBL_MIN) continue;
@@ -328,12 +332,12 @@ int SparseRelaxation(const map<int, map<int, double>>& A,
 	double err_norm = 0.0; // погрешность
 	do
 	{
-		double sum = 0.0, val_d = 0.0;
+		double sum = 0.0;
 
 		for (const auto& elem_row_a : A)
 		{
 			map<int, double> Arow = elem_row_a.second;
-			double sum = 0.0;
+			sum = 0.0;
 			int row = elem_row_a.first;
 			if (Arow.count(row) == 0) return -1; // нулевой диагональный элемент
 
@@ -349,25 +353,7 @@ int SparseRelaxation(const map<int, map<int, double>>& A,
 					sum += Arow[elem_x.first] * elem_x.second;
 			}			
 
-			// b[row]
-			auto iter_b = find_if(b.begin(), b.end(),
-				[row](const auto& pair) {return pair.first == row; }
-			);
-			double val_b = iter_b != b.end() ? iter_b->second : 0.0;
-
-			// x0[row]
-			auto iter_x = find_if(x0.begin(), x0.end(),
-				[row](const auto& pair) {return pair.first == row; }
-			);
-			double val_x = iter_x != x0.end() ? iter_x->second : 0.0;
-
-			// A[row][row]
-			auto iter_a = find_if(Arow.begin(), Arow.end(),
-				[row](const auto& pair) {return pair.first == row; }
-			);
-			double val_a = iter_a != Arow.end() ? iter_a->second : 0.0;
-
-			double val = val_x - omega * (sum - val_b) / val_a;
+			double val = GetValue(x0, row) - omega * (sum - GetValue(b, row)) / GetValue(Arow, row);
 			if (abs(val) <= DBL_MIN) continue;
 			x[row] = val;
 		}
