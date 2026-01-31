@@ -8,7 +8,7 @@ using namespace std;
 /// <param name="_row">строка</param>
 /// <param name="_column">столбец</param>
 /// <returns>ненулевое значение элемента, 0 - если элемент не найден</returns>
-double GetValue(const vector<SparseElement>& matrix,int _row, int _column)
+double GetValue(const vector<SparseElement>& matrix,int _row, int _column = 1)
 {
 	auto iter = find_if( matrix.begin(), matrix.end(),
 		[_row,_column](const SparseElement &el) { return el.row == _row && el.column == _column; }
@@ -48,7 +48,7 @@ vector<SparseElement> SparseTranspose(const vector<SparseElement>& matrix)
 {
 	vector <SparseElement> result;
 	for (const auto& elem : matrix)
-		SetValue(result, elem.column, elem.row, elem.value);		
+		result.push_back({ elem.column, elem.row, elem.value });
 
 	return result;
 }
@@ -127,6 +127,12 @@ void PrintMatrix(vector<SparseElement> matrix, int n)
 	}
 }
 
+/// <summary>
+/// —кал€рное произведение векторов vect1 и vect2
+/// </summary>
+/// <param name="vect1">вектор</param>
+/// <param name="vect2">вектор</param>
+/// <returns>значение скал€рного произведени€</returns>
 double SparseScalarProduct(const vector<SparseElement>& vect1,
 	const vector<SparseElement>& vect2)
 {
@@ -256,7 +262,7 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 			val = t_i0 * cs + t_j0 * ss;
 			SetValue(T, i0, k, val);
 
-			// T(j0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
+			// T(j0,k) = -T0(i0,k)*sin(phi) + T0(j0,k)*cos(phi)
 			val = -t_i0 * ss + t_j0 * cs;
 			SetValue(T, j0, k, val);
 		}

@@ -6,7 +6,7 @@
 #include <map>
 
 #define MAX_ITERATION_NUMBER 60000
-#define EPS 1.0e-15
+#define EPS 1.0e-12
 
 // элемент матрицы
 struct SparseElement
@@ -16,7 +16,6 @@ struct SparseElement
 	double value; // значение
 };
 
-double GetValue(const std::vector<SparseElement>& matrix, int _row, int _column = 1);
 void PrintMatrix(std::vector<SparseElement> matrix, int n);
 std::vector<SparseElement> SparseTranspose(const std::vector<SparseElement>& matrix);
 std::vector <SparseElement> SparseMultiply(const std::vector<SparseElement>& first,

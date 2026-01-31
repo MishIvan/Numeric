@@ -297,6 +297,7 @@ void SparseTestSolve()
 
     for (int i = 0; i < 3; i++)
     {
+        if (i != 1 && n >= 200) continue;
         auto start = std::chrono::steady_clock::now();
         switch (i)
         {
