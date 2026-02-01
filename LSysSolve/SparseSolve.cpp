@@ -92,8 +92,16 @@ vector<SparseElement> SparseDifference(const vector<SparseElement>& first,
 		result.push_back({ elem_first.row, elem_first.column,elem_first.value });
 	for (const auto& elem_second : second)
 	{
-		double val = GetValue(first, elem_second.row, elem_second.column) - elem_second.value;
-		SetValue(result, elem_second.row, elem_second.column, val);
+		int i = elem_second.row;
+		int j = elem_second.column;
+		auto iter = find_if(result.begin(), result.end(),
+			[i, j]
+			(const SparseElement& el) { return el.row == i && el.column == j; }
+		);
+		if(iter != result.end())
+			iter->value -= elem_second.value;
+		else 
+			result.push_back({ elem_second.row, elem_second.column, -elem_second.value });
 	}
 
 	return result;
