@@ -39,7 +39,7 @@ void SetValue(vector<SparseElement>& matrix, int _row, int _column, double _valu
 }
 
 /// <summary>
-/// “ранспонированную матрицу
+/// “ранспонирование матрицы
 /// </summary>
 /// <param name="matrix">исходна€ матрица</param>
 /// <param name="n">пор€док матрицы</param>
@@ -66,17 +66,13 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 	vector <SparseElement> result;
 
 	for (const auto& el_first : first)
-	{
 		for(const auto& el_second : second)
 			if (el_first.column == el_second.row)
 				matrix[el_first.row][el_second.column] += el_first.value * el_second.value;
-	}
 
 	for (const auto& matrix_el : matrix)
-	{
 		for (const auto& mrow_el : matrix_el.second)
 			result.push_back({ matrix_el.first, mrow_el.first, mrow_el.second });
-	}
 
 	return result;
 }
@@ -90,21 +86,15 @@ vector <SparseElement> SparseMultiply(const vector<SparseElement>& first,
 vector<SparseElement> SparseDifference(const vector<SparseElement>& first,
 	const vector<SparseElement>& second)
 {
-	map<int, map<int, double>> buffer;
-	
-	for (const auto& elem_first : first)
-		buffer[elem_first.row][elem_first.column]  = elem_first.value;
-	for (const auto& elem_second : second)
-		buffer[elem_second.row][elem_second.column] -= elem_second.value;
-
 	vector<SparseElement> result;
 	
-	for (const auto& buffer_el : buffer)
-		for (const auto& mrow_el : buffer_el.second)
-		{
-			if (abs(mrow_el.second) <= DBL_MIN) continue;
-			result.push_back({ buffer_el.first, mrow_el.first, mrow_el.second });
-		}
+	for (const auto& elem_first : first)
+		result.push_back({ elem_first.row, elem_first.column,elem_first.value });
+	for (const auto& elem_second : second)
+	{
+		double val = GetValue(first, elem_second.row, elem_second.column) - elem_second.value;
+		SetValue(result, elem_second.row, elem_second.column, val);
+	}
 
 	return result;
 }
