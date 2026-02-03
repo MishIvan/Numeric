@@ -6,7 +6,7 @@
 #include <map>
 
 #define MAX_ITERATION_NUMBER 60000
-#define EPS 1.0e-15
+#define EPS 1.0e-12
 
 // элемент матрицы
 struct SparseElement

@@ -297,7 +297,7 @@ void SparseTestSolve()
 
     for (int i = 0; i < 3; i++)
     {
-        if (i != 1 && n >= 200) continue;
+        //if (i != 1 && n >= 200) continue;
         auto start = std::chrono::steady_clock::now();
         switch (i)
         {
@@ -441,7 +441,7 @@ void SparseTestSolve()
 int main()
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
-    //TestLinearSystemSolve2();
-    SparseTestSolve();
+    TestLinearSystemSolve2();
+    //SparseTestSolve();
 }
 

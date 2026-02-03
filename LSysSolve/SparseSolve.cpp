@@ -246,37 +246,87 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 
 		// T(k) = U*T(k-1), U - матрица вращения
 		T = T0;
+
 		// заполнение строк T(i0,k) и T(j0,k)	
-		double t_i0 = 0.0, t_j0 = 0.0;
+		double t_i0 = 0.0, t_j0 = 0.0, val_j0 = 0.0;;
+		bool found_i0 = false, found_j0 = false;
 		for (int k = 1; k <= n; k++)
 		{
-			// T0(i0,k)
-			t_i0 = GetValue(T0, i0, k);
+			// T0(i0,k), T0(j0,k)
+			t_i0 = t_j0 = 0.0;
+			for (const auto& elem : T0)
+			{
+				if (elem.row == i0 && elem.column == k)
+					t_i0 = elem.value;
+				if (elem.row == j0 && elem.column == k)
+					t_j0 = elem.value;
 
-			// T0(j0,k)
-			t_j0 = GetValue(T0, j0, k);
+			}
 
+			found_i0 = found_j0 = false;
+			val_j0 = 0.0;
 			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
 			val = t_i0 * cs + t_j0 * ss;
-			SetValue(T, i0, k, val);
 
 			// T(j0,k) = -T0(i0,k)*sin(phi) + T0(j0,k)*cos(phi)
-			val = -t_i0 * ss + t_j0 * cs;
-			SetValue(T, j0, k, val);
+			val_j0 = -t_i0 * ss + t_j0 * cs;
+
+			for (auto& elem : T)
+			{
+				if (elem.row == i0 && elem.column == k)
+				{
+					elem.value = val; 
+					found_i0 = true;
+				}
+				if (elem.row == j0 && elem.column == k)
+				{
+					elem.value = val_j0; 
+					found_j0 = true;
+				}
+			}
+
+			if (!found_i0)
+				T.push_back({ i0, k, val });
+			if(!found_j0)
+				T.push_back({ j0, k, val_j0 });
 		}
 
 		// bet(k) = U*bet(k-1)
 		bet = bet0;
-		// b0(i0)
-		double b_i0 = GetValue(bet0, i0);
 
-		// b0(j0)
-		double b_j0 = GetValue(bet0, j0);
+		// b0(i0), b0(j0)
+		double b_i0 = 0.0, b_j0 = 0.0;
+		for (const auto& elem : bet0)
+		{
+			if (elem.row == i0 && elem.column == 1)
+				b_i0 = elem.value;
+			if (elem.row == j0 && elem.column == 1)
+				b_j0 = elem.value;
+		}
 
 		val = b_i0 * cs + b_j0 * ss;
-		SetValue(bet, i0, 1, val);
-		val = -b_i0 * ss + b_j0 * cs;
-		SetValue(bet, j0, 1, val);
+
+		val_j0 = -b_i0 * ss + b_j0 * cs;
+
+		found_i0 = found_j0 = false;
+		for (auto& elem : bet)
+		{
+			if (elem.row == i0 && elem.column == 1)
+			{
+				elem.value = val;
+				found_i0 = true;
+			}
+			if (elem.row == j0 && elem.column == 1)
+			{
+				elem.value = val_j0;
+				found_j0 = true;
+			}
+		}
+
+		if (!found_i0)
+			bet.push_back({ i0, 1, val });
+		if (!found_j0)
+			bet.push_back({ j0, 1, val_j0 });
 
 		// результаты для следующей итерации
 		T0 = T;

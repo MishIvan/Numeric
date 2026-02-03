@@ -43,9 +43,6 @@ double ScalarProduct(const double *v1, const double *v2, int n)
 /// <returns>значение нормы</returns>
 double norm(const double* v, int n)
 {
-	//double nrm = 0.0;
-	//for (int i = 0; i < n; i++)
-	//	nrm += *(v + i) * *(v + i);
 	return sqrt(ScalarProduct(v, v, n));
 }
 
@@ -418,6 +415,7 @@ void LUDecompositionSolve(const double* A, const double* b, double* x, int n)
 		*(x + k) /= *(alfa + k*n + k);
 	}
 
+	delete[] y;
 	delete[] alfa;
 }
 
@@ -461,7 +459,7 @@ void LLTDecompositionSolve(const double* A, const double* b, double* x, int n)
 	
 	double* L = new double[n * n * sizeof(double)];
 	memset(L, 0, n * n * sizeof(double));
-	CholeskyDecomposition(A, L, n);
+	if(!CholeskyDecomposition(A, L, n)) return;
 
 	// решение системы с нижней треугольной матрицей Ly = b
 	double* y = new double[n * sizeof(double)];
@@ -549,6 +547,7 @@ bool Relaxation(const double* A, const double* b, double* x, int n, double omega
 /// <param name="b">вектор правой части СЛАУ</param>
 /// <param name="x">вектор решения СЛАУ</param>
 /// <param name="n">порядок матрицы</param>
+/// <returns>true - если сходимость была достигнута, false - иначе</returns>
 bool RotationSolve(const double *A, const double *b, double *x, int n)
 {
 
