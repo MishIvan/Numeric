@@ -441,7 +441,7 @@ void SparseTestSolve()
 int main()
 {
     setlocale(LC_ALL, ""); // для от ображения кириллицы
-    TestLinearSystemSolve2();
-    //SparseTestSolve();
+    //TestLinearSystemSolve2();
+    SparseTestSolve();
 }
 
