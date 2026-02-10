@@ -456,26 +456,6 @@ int SparseGradientDescent(const vector<SparseElement>& A,
 	const vector<SparseElement>& b, 
 	vector<SparseElement>& x)
 {
-
-	// градиент: 2*(Ax0 - b)
-	auto Gradient = [A, b](const vector<SparseElement>& x)
-		{		
-			vector<SparseElement> result = SparseDifference(SparseMultiply(A, x), b);
-			for (auto& elem : result)
-				elem.value *= 2.0;
-			return result;
-		};
-
-	// A*(Ax0 - b)
-	auto VectorRight = [A, b](const vector<SparseElement>& grad)
-		{
-			//vector<SparseElement> ax = SparseDifference(SparseMultiply(A, x), b);
-			vector<SparseElement> result = SparseMultiply(A, grad);
-			for (auto& elem : result)
-				elem.value *= 0.5;
-			return result;
-		};
-
 	vector<SparseElement> x0;
 	x0.push_back({ 1, 1, 1.0 });
 	double err_norm0 = 1.0;
@@ -485,10 +465,10 @@ int SparseGradientDescent(const vector<SparseElement>& A,
 	double err_norm = 0.0, t = 0.0;
 	do
 	{
-		grad = Gradient(x0);
-		double sc1 = SparseScalarProduct(grad, grad) * 0.25;
+		grad = SparseDifference(SparseMultiply(A, x0), b); // 1/2*(A*x0-b)
+		double sc1 = SparseScalarProduct(grad, grad);
 
-		double sc2 = SparseScalarProduct(grad, VectorRight(grad));
+		double sc2 = SparseScalarProduct(grad, SparseMultiply(A, grad)); // (A*x0-b,A[A*x0-b])
 		t = sc1 / sc2;
 
 		for (auto& elem : grad)
