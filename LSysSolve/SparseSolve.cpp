@@ -248,29 +248,34 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 		T = T0;
 
 		// заполнение строк T(i0,k) и T(j0,k)	
-		double t_i0 = 0.0, t_j0 = 0.0, val_j0 = 0.0;;
+		double t_i0 = 0.0, t_j0 = 0.0, val_j0 = 0.0;
 		bool found_i0 = false, found_j0 = false;
 		for (int k = 1; k <= n; k++)
 		{
 			// T0(i0,k), T0(j0,k)
 			t_i0 = t_j0 = 0.0;
+			found_i0 = found_j0 = false;
 			for (const auto& elem : T0)
 			{
 				if (elem.row == i0 && elem.column == k)
-					t_i0 = elem.value;
+				{
+					t_i0 = elem.value; found_i0 = true;
+				}
 				if (elem.row == j0 && elem.column == k)
-					t_j0 = elem.value;
+				{
+					t_j0 = elem.value; found_j0 = true;
+				}
 
+				if (found_i0 && found_j0) break;
 			}
-
-			found_i0 = found_j0 = false;
-			val_j0 = 0.0;
+						
 			// T(i0,k) = T0(i0,k)*cos(phi) + T0(j0,k)*sin(phi)
 			val = t_i0 * cs + t_j0 * ss;
 
 			// T(j0,k) = -T0(i0,k)*sin(phi) + T0(j0,k)*cos(phi)
 			val_j0 = -t_i0 * ss + t_j0 * cs;
 
+			found_i0 = found_j0 = false;
 			for (auto& elem : T)
 			{
 				if (elem.row == i0 && elem.column == k)
@@ -283,6 +288,8 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 					elem.value = val_j0; 
 					found_j0 = true;
 				}
+				
+				if (found_i0 && found_j0) break;
 			}
 
 			if (!found_i0)
@@ -296,12 +303,19 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 
 		// b0(i0), b0(j0)
 		double b_i0 = 0.0, b_j0 = 0.0;
+		found_i0 = found_j0 = false;
 		for (const auto& elem : bet0)
 		{
 			if (elem.row == i0 && elem.column == 1)
-				b_i0 = elem.value;
+			{
+				b_i0 = elem.value; found_i0 = true;
+			}
 			if (elem.row == j0 && elem.column == 1)
-				b_j0 = elem.value;
+			{
+				b_j0 = elem.value; found_j0 = true;
+			}
+
+			if (found_i0 && found_j0) break;
 		}
 
 		val = b_i0 * cs + b_j0 * ss;
@@ -321,6 +335,8 @@ int SparseRotationSolve(const vector<SparseElement>& A,
 				elem.value = val_j0;
 				found_j0 = true;
 			}
+
+			if (found_i0 && found_j0) break;
 		}
 
 		if (!found_i0)
